@@ -1,0 +1,27 @@
+{
+    "name": "rasp-pico",
+    "build": {
+        "dockerfile": "Dockerfile",
+        "args": {
+            "UID": "1000"
+        }
+    },
+    "customizations": {
+        "vscode": {
+            "settings": {
+                "editor.renderWhitespace": "boundary",
+                "editor.accessibilitySupport": "off",
+                "diffEditor.ignoreTrimWhitespace": false,
+                "C_Cpp.default.includePath": [
+                    "${workspaceFolder}/**",
+                    "${PICO_SDK_PATH}/src/**"
+                ]
+			},
+			"extensions": [
+				"ms-vscode.cpptools",
+                "ms-vscode.cpptools-extension-pack"
+			]
+        }
+    },
+    "remoteUser": "builder"
+}

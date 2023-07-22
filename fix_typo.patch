@@ -1,0 +1,26 @@
+diff --git a/c/examples/LCD_2in_test.c b/c/examples/LCD_2in_test.c
+index 76a89ab..e29357e 100644
+--- a/c/examples/LCD_2in_test.c
++++ b/c/examples/LCD_2in_test.c
+@@ -28,7 +28,7 @@
+ #
+ ******************************************************************************/
+ #include "EPD_Test.h"
+-#include "LCD_2IN.h"
++#include "LCD_2in.h"
+ 
+ bool reserved_addr(uint8_t addr) {
+ return (addr & 0x78) == 0 || (addr & 0x78) == 0x78;
+diff --git a/c/lib/LCD/LCD_2in.c b/c/lib/LCD/LCD_2in.c
+index 99c0567..667c1ea 100644
+--- a/c/lib/LCD/LCD_2in.c
++++ b/c/lib/LCD/LCD_2in.c
+@@ -11,7 +11,7 @@
+ * | Info        :   Basic version
+ *
+ ******************************************************************************/
+-#include "LCD_2IN.h"
++#include "LCD_2in.h"
+ #include "DEV_Config.h"
+ 
+ #include <stdlib.h>		//itoa()
