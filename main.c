@@ -81,7 +81,7 @@ int main ()
 
 #endif
 #if 1
-     Paint_DrawImage(gImage_1inch3_1,0,0,240,240);
+     Paint_DrawImage(gimp_image.pixel_data,0,0,(uint16_t)gimp_image.width,(uint16_t)gimp_image.height);
      LCD_1IN3_Display(BlackImage);
      DEV_Delay_ms(2000);
      
