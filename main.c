@@ -2,233 +2,226 @@
 #include "pico/stdlib.h"
 #include "hardware/gpio.h"
 #include "pico/binary_info.h"
-#include "ImageData.h"
 #include "DEV_Config.h"
 #include "GUI_Paint.h"
 #include "LCD_1in3.h"
 #include "Infrared.h"
+#include "DrawData.h"
 
+#include "./wifi.h"
 
-bool reserved_addr(uint8_t addr) {
-return (addr & 0x78) == 0 || (addr & 0x78) == 0x78;
+#include "pico/cyw43_arch.h"
+
+static int scan_result(void *env, const cyw43_ev_scan_result_t *result) {
+    if (result) {
+        printf("ssid: %-32s rssi: %4d chan: %3d mac: %02x:%02x:%02x:%02x:%02x:%02x sec: %u\n",
+            result->ssid, result->rssi, result->channel,
+            result->bssid[0], result->bssid[1], result->bssid[2], result->bssid[3], result->bssid[4], result->bssid[5],
+            result->auth_mode);
+    }
+    return 0;
 }
+
+#include "hardware/vreg.h"
+#include "hardware/clocks.h"
+
+
+#define GPIO_KEY_A 15
+#define GPIO_KEY_B 17
+#define GPIO_KEY_X 19
+#define GPIO_KEY_Y 21
+
+#define GPIO_KEY_UP 2
+#define GPIO_KEY_DOWN 18
+#define GPIO_KEY_LEFT 16
+#define GPIO_KEY_RIGHT 20
+#define GPIO_KEY_CTRL 3
+
+#define GPIO_KEY_EV_PUSH 0
+#define GPIO_KEY_UX_PUSH_WAIT 250
+
+UWORD *BlackImage;
+volatile int select_menu_idx = 0;
+
+#define GPIO_KEY_EVENTS_LEVEL_LOW 0x1
+#define GPIO_KEY_EVENTS_LEVEL_HIGH 0x2
+#define GPIO_KEY_EVENTS_EDGE_FALL 0x4
+#define GPIO_KEY_EVENTS_EDGE_RISE 0x8
+
+
+
+void gpio_callback(uint gpio, uint32_t events) {
+    printf("GPIO EV %d %d\n", gpio, events);
+
+    // if( (GPIO_KEY_UP==gpio) && (GPIO_KEY_EVENTS_EDGE_FALL==events)){
+    //     int menusCount = sizeof menu_lists / sizeof menu_lists[0];
+    //     select_menu_idx = (select_menu_idx-1 < 0) ? menusCount-1 : select_menu_idx-1;
+    //     draw_radio_menu_screen(BlackImage, select_menu_idx);
+    //     // DEV_Delay_ms(GPIO_KEY_UX_PUSH_WAIT);
+    // }
+    // if( (GPIO_KEY_DOWN==gpio) && (GPIO_KEY_EVENTS_EDGE_FALL==events)){
+    //     int menusCount = sizeof menu_lists / sizeof menu_lists[0];
+    //     select_menu_idx = (menusCount-1 < select_menu_idx+1) ? 0 : select_menu_idx+1;
+    //     draw_radio_menu_screen(BlackImage, select_menu_idx);
+    //     // DEV_Delay_ms(GPIO_KEY_UX_PUSH_WAIT);
+    // }
+}
+
 
 int initialize_board(){
     bi_decl(bi_program_description("https://github.com/pirakansa"));
 
-    DEV_Delay_ms(100);
+    stdio_init_all();
     if(DEV_Module_Init()!=0){
         return -1;
     }
+
     DEV_SET_PWM(50);
     LCD_1IN3_Init(HORIZONTAL);
     LCD_1IN3_Clear(WHITE);
 
-    printf("boot pico program\n");
+    SET_Infrared_PIN(GPIO_KEY_A);
+    SET_Infrared_PIN(GPIO_KEY_B);
+    SET_Infrared_PIN(GPIO_KEY_X);
+    SET_Infrared_PIN(GPIO_KEY_Y);
+		 
+	SET_Infrared_PIN(GPIO_KEY_UP);
+    SET_Infrared_PIN(GPIO_KEY_DOWN);
+    SET_Infrared_PIN(GPIO_KEY_LEFT);
+    SET_Infrared_PIN(GPIO_KEY_RIGHT);
+    SET_Infrared_PIN(GPIO_KEY_CTRL);
+
+
+    return 0;
+}
+
+int initialize_event(){
+    // gpio_set_irq_enabled_with_callback(GPIO_KEY_UP, GPIO_KEY_EVENTS_EDGE_FALL|GPIO_KEY_EVENTS_EDGE_RISE, true, &gpio_callback);
+    // gpio_set_irq_enabled_with_callback(GPIO_KEY_DOWN, GPIO_KEY_EVENTS_EDGE_FALL|GPIO_KEY_EVENTS_EDGE_RISE, true, &gpio_callback);
+
     return 0;
 }
 
 int main ()
 {
      if(initialize_board()!=0){
-        return -1;
+        return 0;
      }
 
-        //LCD_SetBacklight(1023);
-    UDOUBLE Imagesize = LCD_1IN3_HEIGHT*LCD_1IN3_WIDTH*2;
-    UWORD *BlackImage;
+    UDOUBLE Imagesize = LCD_1IN3_HEIGHT * LCD_1IN3_WIDTH * 2;
     if((BlackImage = (UWORD *)malloc(Imagesize)) == NULL) {
         printf("Failed to apply for black memory...\r\n");
         return 0;
     }
     // /*1.Create a new image cache named IMAGE_RGB and fill it with white*/
-    Paint_NewImage((UBYTE *)BlackImage,LCD_1IN3.WIDTH,LCD_1IN3.HEIGHT, 0, WHITE);
+    Paint_NewImage((UBYTE *)BlackImage, LCD_1IN3.WIDTH, LCD_1IN3.HEIGHT, 0, WHITE);
     Paint_SetScale(65);
-    Paint_Clear(WHITE);
     Paint_SetRotate(ROTATE_0);
     Paint_Clear(WHITE);
     
-    // /* GUI */
-    printf("drawing...\r\n");
-    // /*2.Drawing on the image*/
-#if 1
-    Paint_DrawPoint(2,1, BLACK, DOT_PIXEL_1X1,  DOT_FILL_RIGHTUP);//240 240
-    Paint_DrawPoint(2,6, BLACK, DOT_PIXEL_2X2,  DOT_FILL_RIGHTUP);
-    Paint_DrawPoint(2,11, BLACK, DOT_PIXEL_3X3, DOT_FILL_RIGHTUP);
-    Paint_DrawPoint(2,16, BLACK, DOT_PIXEL_4X4, DOT_FILL_RIGHTUP);
-    Paint_DrawPoint(2,21, BLACK, DOT_PIXEL_5X5, DOT_FILL_RIGHTUP);
-    Paint_DrawLine( 10,  5, 40, 35, MAGENTA, DOT_PIXEL_2X2, LINE_STYLE_SOLID);
-    Paint_DrawLine( 10, 35, 40,  5, MAGENTA, DOT_PIXEL_2X2, LINE_STYLE_SOLID);
+    draw_splash_screen(BlackImage);
+    DEV_Delay_ms(GPIO_KEY_UX_PUSH_WAIT);
 
-    Paint_DrawLine( 80,  20, 110, 20, CYAN, DOT_PIXEL_1X1, LINE_STYLE_DOTTED);
-    Paint_DrawLine( 95,   5,  95, 35, CYAN, DOT_PIXEL_1X1, LINE_STYLE_DOTTED);
+    draw_menu_screen(BlackImage);
+    initialize_event();
+    draw_radio_menu_screen(BlackImage, select_menu_idx);
 
-    Paint_DrawRectangle(10, 5, 40, 35, RED, DOT_PIXEL_2X2,DRAW_FILL_EMPTY);
-    Paint_DrawRectangle(45, 5, 75, 35, BLUE, DOT_PIXEL_2X2,DRAW_FILL_FULL);
+    int led_stat = 0;
 
-    Paint_DrawCircle(95, 20, 15, GREEN, DOT_PIXEL_1X1, DRAW_FILL_EMPTY);
-    Paint_DrawCircle(130, 20, 15, GREEN, DOT_PIXEL_1X1, DRAW_FILL_FULL);
+    TCP_SERVER_T *state = calloc(1, sizeof(TCP_SERVER_T));
+    if (!state) {
+        DEBUG_printf("failed to allocate state\n");
+        return 1;
+    }
 
+    if (cyw43_arch_init()) {
+        printf("failed to initialise\n");
+        return 1;
+    }
 
-    Paint_DrawNum (50, 40 ,9.87654321, &Font20,3,  WHITE,  BLACK);
-    Paint_DrawString_EN(1, 40, "ABC", &Font20, 0x000f, 0xfff0);
-    Paint_DrawString_CN(1,60, "��ӭʹ��",  &Font24CN, WHITE, BLUE);
-    Paint_DrawString_EN(1, 100, "WaveShare", &Font16, RED, WHITE); 
+    // Get notified if the user presses a key
+    state->context = cyw43_arch_async_context();
+    key_pressed_worker.user_data = state;
+    async_context_add_when_pending_worker(cyw43_arch_async_context(), &key_pressed_worker);
+    stdio_set_chars_available_callback(key_pressed_func, state);
 
-    // /*3.Refresh the picture in RAM to LCD*/
-    LCD_1IN3_Display(BlackImage);
-    DEV_Delay_ms(2000);
-
+    const char *ap_name = "picow_test";
+#if 0
+    const char *password = "password";
+#else
+    const char *password = NULL;
 #endif
-#if 1
-     Paint_DrawImage(gimp_image.pixel_data,0,0,(uint16_t)gimp_image.width,(uint16_t)gimp_image.height);
-     LCD_1IN3_Display(BlackImage);
-     DEV_Delay_ms(2000);
-     
 
-     
-#endif
-#if 1
+    cyw43_arch_enable_ap_mode(ap_name, password, CYW43_AUTH_WPA2_AES_PSK);
 
-    uint8_t keyA = 15; 
-    uint8_t keyB = 17; 
-    uint8_t keyX = 19; 
-    uint8_t keyY = 21;
+    ip4_addr_t mask;
+    IP4_ADDR(ip_2_ip4(&state->gw), 192, 168, 4, 1);
+    IP4_ADDR(ip_2_ip4(&mask), 255, 255, 255, 0);
 
-    uint8_t up = 2;
-	uint8_t dowm = 18;
-	uint8_t left = 16;
-	uint8_t right = 20;
-	uint8_t ctrl = 3;
-   
+    // Start the dhcp server
+    dhcp_server_t dhcp_server;
+    dhcp_server_init(&dhcp_server, &state->gw, &mask);
 
-    SET_Infrared_PIN(keyA);    
-    SET_Infrared_PIN(keyB);
-    SET_Infrared_PIN(keyX);
-    SET_Infrared_PIN(keyY);
-		 
-	SET_Infrared_PIN(up);
-    SET_Infrared_PIN(dowm);
-    SET_Infrared_PIN(left);
-    SET_Infrared_PIN(right);
-    SET_Infrared_PIN(ctrl);
+    // Start the dns server
+    dns_server_t dns_server;
+    dns_server_init(&dns_server, &state->gw);
 
-    
-    Paint_Clear(WHITE);
-    Paint_DrawRectangle(208, 15, 237, 45, 0xF800, DOT_PIXEL_2X2,DRAW_FILL_EMPTY);
-    Paint_DrawRectangle(208, 75, 237, 105, 0xF800, DOT_PIXEL_2X2,DRAW_FILL_EMPTY);
-    Paint_DrawRectangle(208, 135, 237, 165, 0xF800, DOT_PIXEL_2X2,DRAW_FILL_EMPTY);
-    Paint_DrawRectangle(208, 195, 237, 225, 0xF800, DOT_PIXEL_2X2,DRAW_FILL_EMPTY);
-    Paint_DrawRectangle(60, 60, 91, 90, 0xF800, DOT_PIXEL_2X2,DRAW_FILL_EMPTY);
-    Paint_DrawRectangle(60, 150, 91, 180, 0xF800, DOT_PIXEL_2X2,DRAW_FILL_EMPTY);
-    Paint_DrawRectangle(15, 105, 46, 135, 0xF800, DOT_PIXEL_2X2,DRAW_FILL_EMPTY);
-    Paint_DrawRectangle(105, 105, 136, 135, 0xF800, DOT_PIXEL_2X2,DRAW_FILL_EMPTY);
-    Paint_DrawRectangle(60, 105, 91, 135, 0xF800, DOT_PIXEL_2X2,DRAW_FILL_EMPTY);
-    LCD_1IN3_Display(BlackImage);
+    if (!tcp_server_open(state, ap_name)) {
+        DEBUG_printf("failed to open server\n");
+        return 1;
+    }
 
-    
+    state->complete = false;
+
     while(1){
-        if(DEV_Digital_Read(keyA ) == 0){
-            Paint_DrawRectangle(208, 15, 236, 45, 0xF800, DOT_PIXEL_2X2,DRAW_FILL_FULL);
-            LCD_1IN3_DisplayWindows(208, 15, 236, 45,BlackImage);
-            printf("gpio =%d\r\n",keyA);
+        if(DEV_Digital_Read(GPIO_KEY_UP) == GPIO_KEY_EV_PUSH){
+            int menusCount = sizeof menu_lists / sizeof menu_lists[0];
+            select_menu_idx = (select_menu_idx-1 < 0) ? menusCount-1 : select_menu_idx-1;
+            draw_radio_menu_screen(BlackImage, select_menu_idx);
+            printf("gpio =%d\r\n",GPIO_KEY_UP);
+            DEV_Delay_ms(GPIO_KEY_UX_PUSH_WAIT);
         }
-        else{
-            Paint_DrawRectangle(208, 15, 236, 45, WHITE, DOT_PIXEL_2X2,DRAW_FILL_FULL);
-            LCD_1IN3_DisplayWindows(208, 15, 236, 45,BlackImage);
+        if(DEV_Digital_Read(GPIO_KEY_DOWN) == GPIO_KEY_EV_PUSH){
+            int menusCount = sizeof menu_lists / sizeof menu_lists[0];
+            select_menu_idx = (menusCount-1 < select_menu_idx+1) ? 0 : select_menu_idx+1;
+            draw_radio_menu_screen(BlackImage, select_menu_idx);
+            printf("gpio =%d\r\n",GPIO_KEY_DOWN);
+            DEV_Delay_ms(GPIO_KEY_UX_PUSH_WAIT);
         }
-            
-        if(DEV_Digital_Read(keyB ) == 0){
-            Paint_DrawRectangle(208, 75, 236, 105, 0xF800, DOT_PIXEL_2X2,DRAW_FILL_FULL);
-            LCD_1IN3_DisplayWindows(208, 75, 236, 105,BlackImage);
-            printf("gpio =%d\r\n",keyB);
+        if(select_menu_idx == 0){
+            led_stat = (led_stat+1) % 10;
+            cyw43_gpio_set(&cyw43_state, LED_GPIO, (led_stat < 5));
+            DEV_Delay_ms(100);
         }
-        else{
-            Paint_DrawRectangle(208, 75, 236, 105, WHITE, DOT_PIXEL_2X2,DRAW_FILL_FULL);
-            LCD_1IN3_DisplayWindows(208, 75, 236, 105,BlackImage);
+        if(select_menu_idx == 1){
+            // the following #ifdef is only here so this same example can be used in multiple modes;
+            // you do not need it in your code
+#if PICO_CYW43_ARCH_POLL
+            // if you are using pico_cyw43_arch_poll, then you must poll periodically from your
+            // main loop (not from a timer interrupt) to check for Wi-Fi driver or lwIP work that needs to be done.
+            cyw43_arch_poll();
+            // you can poll as often as you like, however if you have nothing else to do you can
+            // choose to sleep until either a specified time, or cyw43_arch_poll() has work to do:
+            cyw43_arch_wait_for_work_until(make_timeout_time_ms(1000));
+#else
+            // if you are not using pico_cyw43_arch_poll, then Wi-FI driver and lwIP work
+            // is done via interrupt in the background. This sleep is just an example of some (blocking)
+            // work you might be doing.
+            sleep_ms(1000);
+#endif
+        } else {
+            // sleep_ms(1000);
+            // state->complete = false;
         }
-        
-        if(DEV_Digital_Read(keyX ) == 0){
-            Paint_DrawRectangle(208, 135, 236, 165, 0xF800, DOT_PIXEL_2X2,DRAW_FILL_FULL);
-            LCD_1IN3_DisplayWindows(208, 135, 236, 165,BlackImage);
-            printf("gpio =%d\r\n",keyX);
-        }
-        else{
-            Paint_DrawRectangle(208, 135, 236, 165, WHITE, DOT_PIXEL_2X2,DRAW_FILL_FULL);
-            LCD_1IN3_DisplayWindows(208, 135, 236, 165,BlackImage);
-        }
-            
-        if(DEV_Digital_Read(keyY ) == 0){
-            Paint_DrawRectangle(208, 195, 236, 225, 0xF800, DOT_PIXEL_2X2,DRAW_FILL_FULL);
-            LCD_1IN3_DisplayWindows(208, 195, 236, 225,BlackImage);
-            printf("gpio =%d\r\n",keyY);
-        }
-        else{
-            Paint_DrawRectangle(208, 195, 236, 225, WHITE, DOT_PIXEL_2X2,DRAW_FILL_FULL);
-            LCD_1IN3_DisplayWindows(208, 195, 236, 225,BlackImage);
-        }
-
-
-        if(DEV_Digital_Read(up ) == 0){
-            Paint_DrawRectangle(60, 60, 90, 90, 0xF800, DOT_PIXEL_2X2,DRAW_FILL_FULL);
-            LCD_1IN3_DisplayWindows(60, 60, 90, 90,BlackImage);
-            printf("gpio =%d\r\n",up);
-        }
-        else{
-            Paint_DrawRectangle(60, 60, 90, 90, WHITE, DOT_PIXEL_2X2,DRAW_FILL_FULL);
-            LCD_1IN3_DisplayWindows(60, 60, 90, 90,BlackImage);
-        }
-
-        if(DEV_Digital_Read(dowm ) == 0){
-            Paint_DrawRectangle(60, 150, 90, 180, 0xF800, DOT_PIXEL_2X2,DRAW_FILL_FULL);
-            LCD_1IN3_DisplayWindows(60, 150, 90, 180,BlackImage);
-            printf("gpio =%d\r\n",dowm);
-        }
-        else{
-            Paint_DrawRectangle(60, 150, 90, 180, WHITE, DOT_PIXEL_2X2,DRAW_FILL_FULL);
-            LCD_1IN3_DisplayWindows(60, 150, 90, 180,BlackImage);
-        }
-        
-        if(DEV_Digital_Read(left ) == 0){
-            Paint_DrawRectangle(15, 105, 45, 135, 0xF800, DOT_PIXEL_2X2,DRAW_FILL_FULL);
-            LCD_1IN3_DisplayWindows(15, 105, 45, 135,BlackImage);
-            printf("gpio =%d\r\n",left);
-        }
-        else{
-            Paint_DrawRectangle(15, 105, 45, 135, WHITE, DOT_PIXEL_2X2,DRAW_FILL_FULL);
-            LCD_1IN3_DisplayWindows(15, 105, 45, 135,BlackImage);
-        }
-            
-        if(DEV_Digital_Read(right ) == 0){
-            Paint_DrawRectangle(105, 105, 135, 135, 0xF800, DOT_PIXEL_2X2,DRAW_FILL_FULL);
-            LCD_1IN3_DisplayWindows(105, 105, 135, 135,BlackImage);
-            printf("gpio =%d\r\n",right);
-        }
-        else{
-            Paint_DrawRectangle(105, 105, 135, 135, WHITE, DOT_PIXEL_2X2,DRAW_FILL_FULL);
-            LCD_1IN3_DisplayWindows(105, 105, 135, 135,BlackImage);
-        }
-        
-        if(DEV_Digital_Read(ctrl ) == 0){
-            Paint_DrawRectangle(60, 105, 90, 135, 0xF800, DOT_PIXEL_2X2,DRAW_FILL_FULL);
-            LCD_1IN3_DisplayWindows(60, 105, 90, 135,BlackImage);
-            printf("gpio =%d\r\n",ctrl);
-        }
-        else{
-            Paint_DrawRectangle(60, 105, 90, 135, WHITE, DOT_PIXEL_2X2,DRAW_FILL_FULL);
-            LCD_1IN3_DisplayWindows(60, 105, 90, 135,BlackImage);
-        }
-
-
 
     }
 
-#endif
-
-    /* Module Exit */
+    tcp_server_close(state);
+    dns_server_deinit(&dns_server);
+    dhcp_server_deinit(&dhcp_server);
+    cyw43_arch_deinit();
     free(BlackImage);
     BlackImage = NULL;
-    
     
     DEV_Module_Exit();
     return 0;
