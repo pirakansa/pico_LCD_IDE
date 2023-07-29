@@ -7,6 +7,7 @@ RUN apk update && \
             build-base \
             bsd-compat-headers \
             newlib-arm-none-eabi \
+            gcc-arm-none-eabi \
             g++-arm-none-eabi \
             su-exec && \
     chmod +s /sbin/su-exec && \
