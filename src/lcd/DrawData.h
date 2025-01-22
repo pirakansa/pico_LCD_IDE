@@ -1,10 +1,10 @@
-#ifndef _DRAWDATA_H_
-#define _DRAWDATA_H_
+#ifndef _LCD_RES_DRAWDATA_H_
+#define _LCD_RES_DRAWDATA_H_
 
 #include "GUI_Paint.h"
 #include "LCD_1in3.h"
 
-#include "Lenna.c"
+#include "res/Lenna.c"
 
 int draw_splash_screen(UWORD *Image);
 int draw_radio_menu_screen(UWORD *Image,int selected);

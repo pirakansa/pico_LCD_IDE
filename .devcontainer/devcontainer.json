@@ -8,14 +8,8 @@
                 "editor.renderWhitespace": "boundary",
                 "editor.accessibilitySupport": "off",
                 "diffEditor.ignoreTrimWhitespace": false,
-                "C_Cpp.default.includePath": [
-                    "${workspaceFolder}/**"
-                ]
-			},
-			"extensions": [
-				"ms-vscode.cpptools",
-                "ms-vscode.cpptools-extension-pack"
-			]
+                "C_Cpp.default.configurationProvider": "ms-vscode.cmake-tools"
+    }
         }
     }
 }
