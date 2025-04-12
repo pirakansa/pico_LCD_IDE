@@ -13,6 +13,7 @@
 #include "./pico.h"
 
 int initialize_libpico();
+void pico_set_led(bool);
 
 bool __no_inline_not_in_flash_func(get_bootsel_button)() {
     const uint CS_PIN_INDEX = 1;
@@ -65,6 +66,22 @@ void pico_set_led(bool led_on) {
 #else
     gpio_put(PICO_DEFAULT_LED_PIN, led_on);
 #endif
+}
+
+void set_started_led_signal() {
+    pico_set_led(true);
+}
+
+void set_err_led_signal(int count) {
+    while(true){
+        for (int i = 0; i < count ; i++) {
+            pico_set_led(true);
+            sleep_ms(500);
+            pico_set_led(false);
+            sleep_ms(500);
+        }
+        sleep_ms(2000);
+    }
 }
 
 

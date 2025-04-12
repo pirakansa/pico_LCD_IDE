@@ -32,19 +32,14 @@ int main ()
 
     // Initialize standard I/O for debugging and communication
     stdio_init_all();
-    pico_set_led(false);
-    printf("Hello, world!\n");
+    set_started_led_signal();
 
     if(initialize_lcd_draw()!=0){
-        return -1;
+        set_err_led_signal(2);
     }
 
-    bool hoge=false;
-    
     while(true){
-        // Set the LED state based on the BOOTSEL button status
-        pico_set_led(!get_bootsel_button());
-        // hoge = !hoge; // Uncomment to toggle the state of 'hoge'
+        printf("%d\n", get_bootsel_button());
         sleep_ms(1000); // Wait for 1 second
     }
 
