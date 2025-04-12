@@ -13,7 +13,7 @@ After setting up the environment in .devcontainer, follow these steps:
 
 ```sh
 $ mkdir -p build
-$ cmake -S . -B ./build
+$ cmake -DPICO_BOARD=pico  -S . -B ./build
 $ make -C ./build
 ```
 

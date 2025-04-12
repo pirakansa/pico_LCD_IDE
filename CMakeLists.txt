@@ -6,7 +6,15 @@ set(NAME picopro)
 # note: this must happen before project()
 include(pico-sdk/pico_sdk_init.cmake)
 
-set(PICO_BOARD pico)
+# Set default board to pico if not specified
+if(NOT DEFINED PICO_BOARD)
+    set(PICO_BOARD pico)
+endif()
+
+if(PICO_BOARD STREQUAL "pico_w")
+    set(PICO_CYW43_SUPPORTED 1)
+    add_compile_definitions(PICO_CYW43_SUPPORTED=1)
+endif()
 
 project(${NAME} C CXX ASM)
 
