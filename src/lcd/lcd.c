@@ -5,11 +5,16 @@
 #include "gpios.h"
 #include "DrawData.h"
 
+#include "pico/mutex.h"
+// #include "pico/multicore.h"
+
+#define GPIO_KEY_EV_PUSH 0
+#define GPIO_KEY_UX_PUSH_WAIT 250
+
 UWORD *BlackImage;
 volatile int select_menu_idx;
 
 int initialize_liblcd();
-
 
 int initialize_liblcd(){
     if(DEV_Module_Init()!=0){
@@ -39,21 +44,27 @@ int initialize_lcd_module(){
 }
 
 
+auto_init_mutex(counter_mutex);
+
 void gpio_callback(uint gpio, uint32_t events) {
+    uint32_t owner;
+    if (!mutex_try_enter(&counter_mutex,&owner)) {
+        printf("Mutex is already locked\n");
+        return;
+    };
     printf("GPIO EV %d %d\n", gpio, events);
 
     if( (GPIO_KEY_UP==gpio) && (GPIO_KEY_EVENTS_EDGE_FALL==events)){
         int menusCount = sizeof menu_lists / sizeof menu_lists[0];
         select_menu_idx = (select_menu_idx-1 < 0) ? menusCount-1 : select_menu_idx-1;
         draw_radio_menu_screen(BlackImage, select_menu_idx);
-        // DEV_Delay_ms(GPIO_KEY_UX_PUSH_WAIT);
     }
     if( (GPIO_KEY_DOWN==gpio) && (GPIO_KEY_EVENTS_EDGE_FALL==events)){
         int menusCount = sizeof menu_lists / sizeof menu_lists[0];
         select_menu_idx = (menusCount-1 < select_menu_idx+1) ? 0 : select_menu_idx+1;
         draw_radio_menu_screen(BlackImage, select_menu_idx);
-        // DEV_Delay_ms(GPIO_KEY_UX_PUSH_WAIT);
     }
+    mutex_exit(&counter_mutex);
 }
 
 int initialize_lcd_event(){
@@ -66,46 +77,43 @@ int initialize_lcd_event(){
         &gpio_callback
     );
     gpio_set_irq_enabled(
-        GPIO_KEY_UP,
-        GPIO_KEY_EVENTS_EDGE_FALL|GPIO_KEY_EVENTS_EDGE_RISE,
-        true
-    );
-    gpio_set_irq_enabled(
         GPIO_KEY_DOWN,
         GPIO_KEY_EVENTS_EDGE_FALL|GPIO_KEY_EVENTS_EDGE_RISE,
         true
     );
     gpio_set_irq_enabled(
-        GPIO_KEY_DOWN,
+        GPIO_KEY_LEFT,
         GPIO_KEY_EVENTS_EDGE_FALL|GPIO_KEY_EVENTS_EDGE_RISE,
         true
     );
     gpio_set_irq_enabled(
-        GPIO_KEY_DOWN,
+        GPIO_KEY_RIGHT,
         GPIO_KEY_EVENTS_EDGE_FALL|GPIO_KEY_EVENTS_EDGE_RISE,
         true
     );
     gpio_set_irq_enabled(
-        GPIO_KEY_DOWN,
+        GPIO_KEY_A,
         GPIO_KEY_EVENTS_EDGE_FALL|GPIO_KEY_EVENTS_EDGE_RISE,
         true
     );
     gpio_set_irq_enabled(
-        GPIO_KEY_DOWN,
+        GPIO_KEY_B,
         GPIO_KEY_EVENTS_EDGE_FALL|GPIO_KEY_EVENTS_EDGE_RISE,
         true
     );
     gpio_set_irq_enabled(
-        GPIO_KEY_DOWN,
+        GPIO_KEY_X,
+        GPIO_KEY_EVENTS_EDGE_FALL|GPIO_KEY_EVENTS_EDGE_RISE,
+        true
+    );
+    gpio_set_irq_enabled(
+        GPIO_KEY_Y,
         GPIO_KEY_EVENTS_EDGE_FALL|GPIO_KEY_EVENTS_EDGE_RISE,
         true
     );
 
     return 0;
 }
-
-#define GPIO_KEY_EV_PUSH 0
-#define GPIO_KEY_UX_PUSH_WAIT 250
 
 int initialize_lcd_draw(){
    

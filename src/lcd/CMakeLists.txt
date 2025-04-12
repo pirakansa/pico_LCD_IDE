@@ -19,6 +19,7 @@ add_library(liblcd
 
 target_link_libraries(liblcd PUBLIC
     pico_stdlib
+    pico_multicore
     Config
     LCD
     Infrared
