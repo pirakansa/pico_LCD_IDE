@@ -1,5 +1,7 @@
 # pico_LCD_IDE
 
+This repository is a project utilizing the Raspberry Pi Pico and the Pico-LCD-1.3.
+
 - https://rptl.io/picow-connect
 - https://www.waveshare.com/wiki/Pico-LCD-1.3
 - https://github.com/raspberrypi/pico-sdk
@@ -10,7 +12,7 @@
 After setting up the environment in .devcontainer, follow these steps:
 
 ```sh
-$ mkdir -p build 
+$ mkdir -p build
 $ cmake -S . -B ./build
 $ make -C ./build
 ```
