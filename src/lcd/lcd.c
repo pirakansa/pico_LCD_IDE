@@ -6,10 +6,10 @@
 #include "DrawData.h"
 
 
-int initialize_locallcd();
+int initialize_liblcd();
 
 
-int initialize_locallcd(){
+int initialize_liblcd(){
     if(DEV_Module_Init()!=0){
         return -1;
     }
@@ -33,7 +33,7 @@ int initialize_locallcd(){
 }
 
 int initialize_lcd_module(){
-    return initialize_locallcd();
+    return initialize_liblcd();
 }
 
 

@@ -12,7 +12,7 @@
 
 #include "./pico.h"
 
-int initialize();
+int initialize_libpico();
 
 bool __no_inline_not_in_flash_func(get_bootsel_button)() {
     const uint CS_PIN_INDEX = 1;
@@ -68,7 +68,7 @@ void pico_set_led(bool led_on) {
 }
 
 
-int initialize(){
+int initialize_libpico(){
     int rc = pico_led_init();
     hard_assert(rc == PICO_OK);
 
@@ -78,7 +78,7 @@ int initialize(){
 }
 
 int initialize_pico_module(){
-    return initialize();
+    return initialize_libpico();
 }
 
 
