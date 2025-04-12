@@ -5,6 +5,8 @@
 #include "gpios.h"
 #include "DrawData.h"
 
+UWORD *BlackImage;
+volatile int select_menu_idx;
 
 int initialize_liblcd();
 
@@ -40,18 +42,18 @@ int initialize_lcd_module(){
 void gpio_callback(uint gpio, uint32_t events) {
     printf("GPIO EV %d %d\n", gpio, events);
 
-    // if( (GPIO_KEY_UP==gpio) && (GPIO_KEY_EVENTS_EDGE_FALL==events)){
-    //     int menusCount = sizeof menu_lists / sizeof menu_lists[0];
-    //     select_menu_idx = (select_menu_idx-1 < 0) ? menusCount-1 : select_menu_idx-1;
-    //     draw_radio_menu_screen(BlackImage, select_menu_idx);
-    //     // DEV_Delay_ms(GPIO_KEY_UX_PUSH_WAIT);
-    // }
-    // if( (GPIO_KEY_DOWN==gpio) && (GPIO_KEY_EVENTS_EDGE_FALL==events)){
-    //     int menusCount = sizeof menu_lists / sizeof menu_lists[0];
-    //     select_menu_idx = (menusCount-1 < select_menu_idx+1) ? 0 : select_menu_idx+1;
-    //     draw_radio_menu_screen(BlackImage, select_menu_idx);
-    //     // DEV_Delay_ms(GPIO_KEY_UX_PUSH_WAIT);
-    // }
+    if( (GPIO_KEY_UP==gpio) && (GPIO_KEY_EVENTS_EDGE_FALL==events)){
+        int menusCount = sizeof menu_lists / sizeof menu_lists[0];
+        select_menu_idx = (select_menu_idx-1 < 0) ? menusCount-1 : select_menu_idx-1;
+        draw_radio_menu_screen(BlackImage, select_menu_idx);
+        // DEV_Delay_ms(GPIO_KEY_UX_PUSH_WAIT);
+    }
+    if( (GPIO_KEY_DOWN==gpio) && (GPIO_KEY_EVENTS_EDGE_FALL==events)){
+        int menusCount = sizeof menu_lists / sizeof menu_lists[0];
+        select_menu_idx = (menusCount-1 < select_menu_idx+1) ? 0 : select_menu_idx+1;
+        draw_radio_menu_screen(BlackImage, select_menu_idx);
+        // DEV_Delay_ms(GPIO_KEY_UX_PUSH_WAIT);
+    }
 }
 
 int initialize_lcd_event(){
@@ -105,9 +107,6 @@ int initialize_lcd_event(){
 #define GPIO_KEY_EV_PUSH 0
 #define GPIO_KEY_UX_PUSH_WAIT 250
 
-UWORD *BlackImage;
-volatile int select_menu_idx = 0;
-
 int initialize_lcd_draw(){
    
     UDOUBLE Imagesize = LCD_1IN3_HEIGHT * LCD_1IN3_WIDTH * 2;
@@ -120,10 +119,11 @@ int initialize_lcd_draw(){
     Paint_SetScale(65);
     Paint_SetRotate(ROTATE_0);
     Paint_Clear(WHITE);
-    
+
     draw_splash_screen(BlackImage);
     DEV_Delay_ms(GPIO_KEY_UX_PUSH_WAIT);
-
+    
+    select_menu_idx = 0;
     draw_menu_screen(BlackImage);
     initialize_lcd_event();
     draw_radio_menu_screen(BlackImage, select_menu_idx);
