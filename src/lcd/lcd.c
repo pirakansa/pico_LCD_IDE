@@ -3,12 +3,13 @@
 #include "DEV_Config.h"
 #include "Infrared.h"
 #include "gpios.h"
+#include "DrawData.h"
 
 
-// int initialize();
+int initialize_locallcd();
 
 
-int initialize(){
+int initialize_locallcd(){
     if(DEV_Module_Init()!=0){
         return -1;
     }
@@ -32,7 +33,7 @@ int initialize(){
 }
 
 int initialize_lcd_module(){
-    return initialize();
+    return initialize_locallcd();
 }
 
 
@@ -112,7 +113,7 @@ int initialize_lcd_draw(){
     UDOUBLE Imagesize = LCD_1IN3_HEIGHT * LCD_1IN3_WIDTH * 2;
     if((BlackImage = (UWORD *)malloc(Imagesize)) == NULL) {
         printf("Failed to apply for black memory...\r\n");
-        return 0;
+        return -1;
     }
     // /*1.Create a new image cache named IMAGE_RGB and fill it with white*/
     Paint_NewImage((UBYTE *)BlackImage, LCD_1IN3.WIDTH, LCD_1IN3.HEIGHT, 0, WHITE);

@@ -23,20 +23,9 @@ set(CMAKE_CXX_STANDARD 17)
 pico_sdk_init()
 
 # add a compilation subdirectory
-# add_subdirectory(Pico_code/c/lib/Config)
-# add_subdirectory(Pico_code/c/lib/Infrared)
-# add_subdirectory(Pico_code/c/lib/LCD)
-# add_subdirectory(Pico_code/c/lib/Fonts)
-# add_subdirectory(Pico_code/c/lib/GUI)
 add_subdirectory(src/pico)
-# add_subdirectory(src/lcd)
+add_subdirectory(src/lcd)
 
-# add a header directory
-# include_directories(./Pico_code/c/lib/Config)
-# include_directories(./Pico_code/c/lib/GUI)
-# include_directories(./Pico_code/c/lib/LCD)
-# include_directories(./Pico_code/c/lib/Infrared)
-# include_directories(./Pico_code/c/lib/Fonts)
 
 # generate an executable file
 add_executable(${NAME} 
@@ -55,6 +44,7 @@ target_include_directories(${NAME} PRIVATE
 )
 
 target_link_libraries(${NAME}
-    pico
+    libpico
+    liblcd
     pico_stdlib
 )
