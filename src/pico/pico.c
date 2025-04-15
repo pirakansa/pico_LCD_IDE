@@ -15,7 +15,7 @@
 int initialize_libpico();
 void pico_set_led(bool);
 
-bool __no_inline_not_in_flash_func(get_bootsel_button)() {
+bool __no_inline_not_in_flash_func(get_bootsel_button_state)() {
     const uint CS_PIN_INDEX = 1;
 
     // Must disable interrupts, as interrupt handlers may be in flash, and we
