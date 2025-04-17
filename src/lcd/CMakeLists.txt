@@ -5,11 +5,11 @@ add_subdirectory(${CMAKE_SOURCE_DIR}/Pico_code/c/lib/LCD        ${CMAKE_CURRENT_
 add_subdirectory(${CMAKE_SOURCE_DIR}/Pico_code/c/lib/Fonts      ${CMAKE_CURRENT_BINARY_DIR}/Pico_code/c/lib/Fonts)
 add_subdirectory(${CMAKE_SOURCE_DIR}/Pico_code/c/lib/GUI        ${CMAKE_CURRENT_BINARY_DIR}/Pico_code/c/lib/GUI)
 
-include_directories(../../Pico_code/c/lib/Config)
-include_directories(../../Pico_code/c/lib/GUI)
-include_directories(../../Pico_code/c/lib/LCD)
-include_directories(../../Pico_code/c/lib/Infrared)
-include_directories(../../Pico_code/c/lib/Fonts)
+include_directories(${CMAKE_SOURCE_DIR}/Pico_code/c/lib/Config)
+include_directories(${CMAKE_SOURCE_DIR}/Pico_code/c/lib/GUI)
+include_directories(${CMAKE_SOURCE_DIR}/Pico_code/c/lib/LCD)
+include_directories(${CMAKE_SOURCE_DIR}/Pico_code/c/lib/Infrared)
+include_directories(${CMAKE_SOURCE_DIR}/Pico_code/c/lib/Fonts)
 
 aux_source_directory(. DIR_LCD_SRCS)
 
