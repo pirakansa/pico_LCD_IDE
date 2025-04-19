@@ -26,6 +26,7 @@ pico_sdk_init()
 # add a compilation subdirectory
 add_subdirectory(src/pico)
 add_subdirectory(src/lcd)
+add_subdirectory(src/usb)
 
 
 # generate an executable file
@@ -43,13 +44,11 @@ pico_add_extra_outputs(${NAME})
 
 target_include_directories(${NAME} PRIVATE
   ${CMAKE_CURRENT_LIST_DIR}
-  ${CMAKE_CURRENT_LIST_DIR}/src/usb
 )
 
 target_link_libraries(${NAME}
     libpico
     liblcd
+    libusb
     pico_stdlib
-    tinyusb_device
-    tinyusb_board
 )
