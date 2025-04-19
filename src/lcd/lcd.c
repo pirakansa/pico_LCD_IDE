@@ -54,12 +54,12 @@ void gpio_callback(uint gpio, uint32_t events) {
     };
     printf("GPIO EV %d %d\n", gpio, events);
 
-    if( (GPIO_KEY_UP==gpio) && (GPIO_KEY_EVENTS_EDGE_FALL==events)){
+    if( (GPIO_KEY_UP==gpio) && (GPIO_KEY_EVENTS_EDGE_RISE==events)){
         int menusCount = sizeof menu_lists / sizeof menu_lists[0];
         select_menu_idx = (select_menu_idx-1 < 0) ? menusCount-1 : select_menu_idx-1;
         draw_radio_menu_screen(BlackImage, select_menu_idx);
     }
-    if( (GPIO_KEY_DOWN==gpio) && (GPIO_KEY_EVENTS_EDGE_FALL==events)){
+    if( (GPIO_KEY_DOWN==gpio) && (GPIO_KEY_EVENTS_EDGE_RISE==events)){
         int menusCount = sizeof menu_lists / sizeof menu_lists[0];
         select_menu_idx = (menusCount-1 < select_menu_idx+1) ? 0 : select_menu_idx+1;
         draw_radio_menu_screen(BlackImage, select_menu_idx);
