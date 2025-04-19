@@ -6,9 +6,6 @@
 #include "lcd/lcd.h"
 #include "usb/usb.h"
 
-// #include "bsp/board_api.h"
-
-
 
 // Function to initialize the board and declare program metadata
 int initialize_board(){

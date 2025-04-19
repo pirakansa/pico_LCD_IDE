@@ -3,6 +3,7 @@
 #include "dev_hid_composite/usb_descriptors.h"
 #include "dev_lowlevel/usb_common.h"
 
+#include "bsp/board_api.h"
 
 // Descriptors
 tusb_desc_device_t const device_descriptor = {
@@ -122,7 +123,7 @@ static void send_hid_report(uint8_t report_id, uint32_t btn)
 
 // Every 10ms, we will sent 1 report for each HID profile (keyboard, mouse etc ..)
 // tud_hid_report_complete_cb() is used to send the next report after previous one is complete
-void usb_hid_task(uint32_t const btn){
+void usb_hid_task(bool const btn){
     // Poll every 10ms
     const uint32_t interval_ms = 10;
     static uint32_t start_ms = 0;
