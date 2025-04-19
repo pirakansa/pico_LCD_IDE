@@ -3,10 +3,9 @@
 
 #include <stdbool.h>
 
+int initialize_usb_module();
 void usb_device_task();
 void usb_hid_task(bool const btn);
-int initialize_usb_module();
-void hid_task();
 
 #endif
 
