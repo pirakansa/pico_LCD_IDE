@@ -6,7 +6,7 @@
 #include "DrawData.h"
 
 #include "pico/mutex.h"
-// #include "pico/multicore.h"
+#include "lcd.h"
 
 #define GPIO_KEY_EV_PUSH 0
 #define GPIO_KEY_UX_PUSH_WAIT 250
@@ -46,6 +46,9 @@ int initialize_lcd_module(){
 
 auto_init_mutex(counter_mutex);
 
+
+static lcd_callback_t lcd_event_callback = NULL;
+
 void gpio_callback(uint gpio, uint32_t events) {
     uint32_t owner;
     if (!mutex_try_enter(&counter_mutex,&owner)) {
@@ -58,11 +61,18 @@ void gpio_callback(uint gpio, uint32_t events) {
         int menusCount = sizeof menu_lists / sizeof menu_lists[0];
         select_menu_idx = (select_menu_idx-1 < 0) ? menusCount-1 : select_menu_idx-1;
         draw_radio_menu_screen(BlackImage, select_menu_idx);
-    }
-    if( (GPIO_KEY_DOWN==gpio) && (GPIO_KEY_EVENTS_EDGE_RISE==events)){
+    } else if( (GPIO_KEY_DOWN==gpio) && (GPIO_KEY_EVENTS_EDGE_RISE==events)){
         int menusCount = sizeof menu_lists / sizeof menu_lists[0];
         select_menu_idx = (menusCount-1 < select_menu_idx+1) ? 0 : select_menu_idx+1;
         draw_radio_menu_screen(BlackImage, select_menu_idx);
+    } else if( (GPIO_KEY_A==gpio) && (GPIO_KEY_EVENTS_EDGE_RISE==events)){
+        if (lcd_event_callback) {
+            lcd_event_callback(STACKEVENTS_BTN1);
+        }
+    } else if( (GPIO_KEY_B==gpio) && (GPIO_KEY_EVENTS_EDGE_RISE==events)){
+        if (lcd_event_callback) {
+            lcd_event_callback(STACKEVENTS_BTN2);
+        }
     }
     mutex_exit(&counter_mutex);
 }
@@ -115,8 +125,9 @@ int initialize_lcd_event(){
     return 0;
 }
 
-int initialize_lcd_draw(){
-   
+int initialize_lcd_draw(lcd_callback_t callback) {
+    lcd_event_callback = callback;
+
     UDOUBLE Imagesize = LCD_1IN3_HEIGHT * LCD_1IN3_WIDTH * 2;
     if((BlackImage = (UWORD *)malloc(Imagesize)) == NULL) {
         printf("Failed to apply for black memory...\r\n");

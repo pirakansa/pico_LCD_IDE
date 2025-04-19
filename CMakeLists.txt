@@ -27,6 +27,7 @@ pico_sdk_init()
 add_subdirectory(src/pico)
 add_subdirectory(src/lcd)
 add_subdirectory(src/usb)
+add_subdirectory(src/events)
 
 
 # generate an executable file
@@ -50,5 +51,6 @@ target_link_libraries(${NAME}
     libpico
     liblcd
     libusb
+    libevent
     pico_stdlib
 )
