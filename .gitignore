@@ -1,5 +1,4 @@
 
 /build
-/lcd
-/examples
-.vscode/
+.gemini/styleguide.md
+.vscode/settings.json

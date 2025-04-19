@@ -1,51 +1,56 @@
-cmake_minimum_required(VERSION 3.13)
-include($ENV{PICO_SDK_PATH}/external/pico_sdk_import.cmake)
-project(picopro C CXX ASM)
+cmake_minimum_required(VERSION 3.13...3.27)
+
+set(NAME picopro)
+
+# initialize pico-sdk from submodule
+# note: this must happen before project()
+include(pico-sdk/pico_sdk_init.cmake)
+
+# Set default board to pico if not specified
+if(NOT DEFINED PICO_BOARD)
+    set(PICO_BOARD pico)
+endif()
+
+if(PICO_BOARD STREQUAL "pico_w")
+    set(PICO_CYW43_SUPPORTED 1)
+    add_compile_definitions(PICO_CYW43_SUPPORTED=1)
+endif()
+
+project(${NAME} C CXX ASM)
 
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_CXX_STANDARD 17)
+#set(FAMILY rp2040)
 pico_sdk_init()
 
 # add a compilation subdirectory
-add_subdirectory(lcd/c/lib/Config)
-add_subdirectory(lcd/c/lib/Infrared)
-add_subdirectory(lcd/c/lib/LCD)
-add_subdirectory(lcd/c/lib/Fonts)
-add_subdirectory(lcd/c/lib/GUI)
+add_subdirectory(src/pico)
+add_subdirectory(src/lcd)
+add_subdirectory(src/usb)
+add_subdirectory(src/events)
 
-# add a header directory
-include_directories(./lcd/c/lib/Config)
-include_directories(./lcd/c/lib/GUI)
-include_directories(./lcd/c/lib/LCD)
-include_directories(./lcd/c/lib/Infrared)
-include_directories(./lcd/c/lib/Fonts)
-include_directories(./examples/pico_w/wifi/access_point)
-include_directories(./examples/pico_w/wifi)
-include_directories(./examples/pico_w/wifi/access_point/dhcpserver)
-include_directories(./examples/pico_w/wifi/access_point/dnsserver)
 
 # generate an executable file
-add_executable(picopro 
-    main.c
-    examples/pico_w/wifi/access_point/dhcpserver/dhcpserver.c
-    examples/pico_w/wifi/access_point/dnsserver/dnsserver.c
-    )
+add_executable(${NAME} 
+    src/main.c
+)
 
 # enable usb output, disable uart output
-pico_enable_stdio_usb(picopro 1)
-pico_enable_stdio_uart(picopro 0)
+#pico_enable_stdio_usb(${NAME} 1)
+pico_enable_stdio_usb(${NAME} 0)
+pico_enable_stdio_uart(${NAME} 0)
 
 # create map/bin/hex/uf2 file etc.
-pico_add_extra_outputs(picopro)
+pico_add_extra_outputs(${NAME})
 
-target_link_libraries(
-    picopro
-    LCD
-    Infrared
-    GUI
-    Fonts
-    Config
+target_include_directories(${NAME} PRIVATE
+  ${CMAKE_CURRENT_LIST_DIR}
+)
+
+target_link_libraries(${NAME}
+    libpico
+    liblcd
+    libusb
+    libevent
     pico_stdlib
-    hardware_spi
-    pico_cyw43_arch_lwip_poll
 )

@@ -1,10 +1,10 @@
-#ifndef _DRAWDATA_H_
-#define _DRAWDATA_H_
+#ifndef _LCD_RES_DRAWDATA_H_
+#define _LCD_RES_DRAWDATA_H_
 
 #include "GUI_Paint.h"
 #include "LCD_1in3.h"
 
-#include "Lenna.c"
+#include "res/Lenna.c"
 
 int draw_splash_screen(UWORD *Image);
 int draw_radio_menu_screen(UWORD *Image,int selected);
@@ -19,7 +19,7 @@ int draw_splash_screen(UWORD *Image){
 }
 
 static const char *menu_lists[] = {
-	"flashing led",
+	"menu1",
     "menu2",
 	"menu3",
     "menu4"
@@ -27,6 +27,7 @@ static const char *menu_lists[] = {
 
 #define MENU_CIRCLE_SIZE 15
 #define MENU_CIRCLE_MARGIN_SIZE 5
+#define LCD_HEIGHT 240
 
 int draw_radio_menu_screen(UWORD *Image, int selected){
     int menusCount = sizeof menu_lists / sizeof menu_lists[0];
@@ -45,7 +46,7 @@ int draw_radio_menu_screen(UWORD *Image, int selected){
     }
     LCD_1IN3_DisplayWindows(
         0, 0,
-        (MENU_CIRCLE_SIZE + MENU_CIRCLE_MARGIN_SIZE)*2, 240,
+        (MENU_CIRCLE_SIZE + MENU_CIRCLE_MARGIN_SIZE)*2, LCD_HEIGHT,
         Image);
 
     return 0;
