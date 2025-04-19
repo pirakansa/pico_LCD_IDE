@@ -24,7 +24,7 @@ tusb_desc_device_t const device_descriptor = {
 };
 
 const uint8_t hid_report_desc[] = {
-    TUD_HID_REPORT_DESC_KEYBOARD( HID_REPORT_ID(REPORT_ID_KEYBOARD         ))
+    TUD_HID_REPORT_DESC_KEYBOARD( HID_REPORT_ID(REPORT_ID_KEYBOARD ))
 };
 
 const uint8_t desc_configuration[] = {
@@ -37,7 +37,7 @@ const uint16_t string_desc_lang[] = { // Index: 0
     0x411 // ja-JP
 };
 const uint16_t string_desc_product[] = { // Index: 1
-    18 | (3 << 8),
+    (2 + 2 * 9) | (3 << 8),
     'P', 'i', 'r', 'a', 's', 'p', 'i', 'c', 'o'
 };
 
@@ -66,6 +66,8 @@ uint16_t const *tud_descriptor_string_cb(uint8_t index, uint16_t langid) {
         case STRID_MANUFACTURER:
             ret = string_desc_product;
             break;
+        case STRID_PRODUCT:
+            return string_desc_product;
         default:
             break;
     }
