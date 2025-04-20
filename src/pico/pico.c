@@ -12,10 +12,20 @@
 
 #include "./pico.h"
 
+// Initializes the Pico library, including LED setup.
 int initialize_libpico();
+
+// Initializes the LED for the Pico board.
 int pico_led_init();
+
+// Sets the state of the onboard LED (on/off).
 void pico_set_led(bool);
 
+/**
+ * Reads the state of the BOOTSEL button.
+ * This function temporarily disables flash access to safely read the button state.
+ * Returns true if the button is pressed, false otherwise.
+ */
 bool __no_inline_not_in_flash_func(get_bootsel_button_state)() {
     const uint CS_PIN_INDEX = 1;
 
@@ -51,6 +61,10 @@ bool __no_inline_not_in_flash_func(get_bootsel_button_state)() {
     return button_state;
 }
 
+/**
+ * Sets the state of the onboard LED.
+ * If `led_on` is true, the LED is turned on; otherwise, it is turned off.
+ */
 void pico_set_led(bool led_on) {
 #ifdef PICO_CYW43_SUPPORTED
     cyw43_arch_gpio_put(CYW43_WL_GPIO_LED_PIN, led_on);
@@ -59,10 +73,17 @@ void pico_set_led(bool led_on) {
 #endif
 }
 
+/**
+ * Turns on the onboard LED to signal that the system has started.
+ */
 void set_started_led_signal() {
     pico_set_led(true);
 }
 
+/**
+ * Blinks the onboard LED to indicate an error.
+ * The LED blinks `count` times, pauses, and repeats indefinitely.
+ */
 void set_err_led_signal(int count) {
     while(true){
         for (int i = 0; i < count ; i++) {
@@ -75,7 +96,10 @@ void set_err_led_signal(int count) {
     }
 }
 
-
+/**
+ * Initializes the onboard LED.
+ * Returns PICO_OK if successful, or an error code otherwise.
+ */
 int pico_led_init(void) {
 #ifdef PICO_CYW43_SUPPORTED
     return cyw43_arch_init();
@@ -86,6 +110,10 @@ int pico_led_init(void) {
 #endif
 }
 
+/**
+ * Initializes the Pico library and sets up the onboard LED.
+ * Returns 0 if successful.
+ */
 int initialize_libpico(){
     int rc = pico_led_init();
     hard_assert(rc == PICO_OK);
@@ -95,6 +123,10 @@ int initialize_libpico(){
     return 0;
 }
 
+/**
+ * Initializes the Pico module by calling `initialize_libpico`.
+ * Returns 0 if successful.
+ */
 int initialize_pico_module(){
     return initialize_libpico();
 }
