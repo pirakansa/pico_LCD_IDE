@@ -13,6 +13,7 @@
 #include "./pico.h"
 
 int initialize_libpico();
+int pico_led_init();
 void pico_set_led(bool);
 
 bool __no_inline_not_in_flash_func(get_bootsel_button_state)() {
@@ -50,16 +51,6 @@ bool __no_inline_not_in_flash_func(get_bootsel_button_state)() {
     return button_state;
 }
 
-int pico_led_init(void) {
-#ifdef PICO_CYW43_SUPPORTED
-    return cyw43_arch_init();
-#else
-    gpio_init(PICO_DEFAULT_LED_PIN);
-    gpio_set_dir(PICO_DEFAULT_LED_PIN, GPIO_OUT);
-    return PICO_OK;
-#endif
-}
-
 void pico_set_led(bool led_on) {
 #ifdef PICO_CYW43_SUPPORTED
     cyw43_arch_gpio_put(CYW43_WL_GPIO_LED_PIN, led_on);
@@ -84,6 +75,16 @@ void set_err_led_signal(int count) {
     }
 }
 
+
+int pico_led_init(void) {
+#ifdef PICO_CYW43_SUPPORTED
+    return cyw43_arch_init();
+#else
+    gpio_init(PICO_DEFAULT_LED_PIN);
+    gpio_set_dir(PICO_DEFAULT_LED_PIN, GPIO_OUT);
+    return PICO_OK;
+#endif
+}
 
 int initialize_libpico(){
     int rc = pico_led_init();
