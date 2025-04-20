@@ -1,12 +1,9 @@
 #include <stdio.h>
 #include "pico/stdlib.h"
-#include "events.h"
+#include "./events.h"
 #include "pico/mutex.h"
 
 #define QUEUE_SIZE 10
-
-auto_init_mutex(events_pointer_mutex);
-
 
 auto_init_mutex(events_pointer_mutex);
 
