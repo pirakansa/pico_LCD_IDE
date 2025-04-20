@@ -8,13 +8,18 @@
 #include "pico/mutex.h"
 #include "lcd.h"
 
-#define GPIO_KEY_EV_PUSH 0
 #define GPIO_KEY_UX_PUSH_WAIT 250
+
+int initialize_liblcd();
+int initialize_lcd_event();
 
 UWORD *BlackImage;
 volatile int select_menu_idx;
+static lcd_callback_t lcd_event_callback = NULL;
 
-int initialize_liblcd();
+auto_init_mutex(counter_mutex);
+
+
 
 int initialize_liblcd(){
     if(DEV_Module_Init()!=0){
@@ -43,11 +48,6 @@ int initialize_lcd_module(){
     return initialize_liblcd();
 }
 
-
-auto_init_mutex(counter_mutex);
-
-
-static lcd_callback_t lcd_event_callback = NULL;
 
 void gpio_callback(uint gpio, uint32_t events) {
     uint32_t owner;
