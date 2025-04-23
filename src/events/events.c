@@ -42,9 +42,9 @@ int events_action(pointer_action_dt act) {
 stackevents_dt enqueue(stackevents_dt enq_data) {
     if (QUEUE_SIZE <= queue_cnt) {
         printf("Error: Queue overflow.\n");
-        return STACKEVENTS_NONE;
+        return STACKEVENTS_FULL;
     }
-
+    
     stackevents[(queue_head + queue_cnt) % QUEUE_SIZE] = enq_data;
     events_action(STACKEVENTS_ADD);
     return enq_data;
@@ -53,7 +53,7 @@ stackevents_dt enqueue(stackevents_dt enq_data) {
 stackevents_dt dequeue() {
     if (queue_cnt <= 0) {
         printf("Error: Queue underflow.\n");
-        return STACKEVENTS_FULL;
+        return STACKEVENTS_NONE;
     }
 
     stackevents_dt deq_data = stackevents[queue_head];
