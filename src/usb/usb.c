@@ -148,6 +148,7 @@ void usb_hid_type_string(const char *str) {
         uint8_t keycode[6] = { 0 };
         uint8_t modifier   = 0;
         char c = *str;
+        // https://qiita.com/nak435/items/0ed2e371d43afb17ec72
         if ( conv_table[c][0] )
             modifier = KEYBOARD_MODIFIER_LEFTSHIFT;
         keycode[0] = conv_table[c][1];
