@@ -8,6 +8,8 @@ typedef enum {
     STACKEVENTS_INTERRUPT,      // Interrupt event
     STACKEVENTS_BTN1,           // Button 1 pressed
     STACKEVENTS_BTN2,           // Button 2 pressed
+    STACKEVENTS_BTN3,           // Button 3 pressed
+    STACKEVENTS_BTN4,           // Button 4 pressed
     // Add new events here
 } stackevents_dt;
 

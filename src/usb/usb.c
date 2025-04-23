@@ -105,10 +105,14 @@ void send_hid_report(uint8_t report_id, stackevents_dt ev){
 
     switch(report_id){
         case REPORT_ID_KEYBOARD:
-            if ( ev == STACKEVENTS_BTN1 ){
+            if        ( ev == STACKEVENTS_BTN1 ){
                 usb_hid_type_string("mail@example.com");
             } else if ( ev == STACKEVENTS_BTN2 ){
-                usb_hid_type_string("Hello World!");
+                usb_hid_type_string("btn2 click!");
+            } else if ( ev == STACKEVENTS_BTN3 ){
+                usb_hid_type_string("btn3 click!");
+            } else if ( ev == STACKEVENTS_BTN4 ){
+                usb_hid_type_string("btn4 click!");
             }
             break;
         default:

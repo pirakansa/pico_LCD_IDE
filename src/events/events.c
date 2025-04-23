@@ -30,8 +30,8 @@ int events_action(pointer_action_dt act) {
     if (act == STACKEVENTS_ADD) {
         queue_cnt++;
     } else if (act == STACKEVENTS_SUB) {
-        queue_head = (queue_head + 1) % QUEUE_SIZE;
         queue_cnt--;
+        queue_head = (queue_head + 1) % QUEUE_SIZE;
     }
 
     mutex_exit(&events_pointer_mutex);

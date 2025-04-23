@@ -73,6 +73,14 @@ void gpio_callback(uint gpio, uint32_t events) {
         if (lcd_event_callback) {
             lcd_event_callback(STACKEVENTS_BTN2);
         }
+    } else if( (GPIO_KEY_X==gpio) && (GPIO_KEY_EVENTS_EDGE_RISE==events)){
+        if (lcd_event_callback) {
+            lcd_event_callback(STACKEVENTS_BTN3);
+        }
+    } else if( (GPIO_KEY_Y==gpio) && (GPIO_KEY_EVENTS_EDGE_RISE==events)){
+        if (lcd_event_callback) {
+            lcd_event_callback(STACKEVENTS_BTN4);
+        }
     }
     mutex_exit(&counter_mutex);
 }
