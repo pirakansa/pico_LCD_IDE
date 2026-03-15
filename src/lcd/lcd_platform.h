@@ -40,6 +40,7 @@ int draw_splash_screen(UWORD *image);
 int draw_menu_screen(UWORD *image);
 int draw_radio_menu_screen(UWORD *image, int selected);
 void DEV_Delay_ms(int ms);
+uint32_t time_us_32(void);
 int mutex_try_enter(void *mutex, uint32_t *owner);
 void mutex_exit(void *mutex);
 void gpio_set_irq_enabled_with_callback(uint gpio, uint32_t events, _Bool enabled, void (*callback)(uint, uint32_t));

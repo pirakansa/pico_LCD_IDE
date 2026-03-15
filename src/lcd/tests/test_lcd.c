@@ -15,6 +15,7 @@ typedef struct {
 
 int initialize_lcd_draw(lcd_callback_t callback);
 void gpio_callback(uint gpio, uint32_t events);
+void lcd_test_reset_input_state(void);
 
 lcd_1in3_t LCD_1IN3 = {240, 240};
 int menu_count = 4;
@@ -29,6 +30,7 @@ static int irq_enabled_calls;
 static int pwm_value = -1;
 static int splash_calls;
 static int menu_calls;
+static uint32_t fake_time_us;
 
 static void reset_state(void) {
     dev_module_init_rc = 0;
@@ -41,7 +43,9 @@ static void reset_state(void) {
     pwm_value = -1;
     splash_calls = 0;
     menu_calls = 0;
+    fake_time_us = 0;
     lcd_test_reset_runtime_state();
+    lcd_test_reset_input_state();
 }
 
 int DEV_Module_Init(void) {
@@ -105,6 +109,10 @@ int draw_radio_menu_screen(UWORD *image, int selected) {
 
 void DEV_Delay_ms(int ms) {
     (void)ms;
+}
+
+uint32_t time_us_32(void) {
+    return fake_time_us;
 }
 
 int mutex_try_enter(void *mutex, uint32_t *owner) {
@@ -211,6 +219,24 @@ static void test_gpio_buttons_enqueue_events(test_suite_t *suite) {
     ASSERT_INT(suite, "button y", STACKEVENTS_BTN4, callback_event);
 }
 
+static void test_gpio_button_debounces_duplicate_rise(test_suite_t *suite) {
+    reset_state();
+    initialize_lcd_draw(capture_event);
+
+    fake_time_us = 1000;
+    gpio_callback(GPIO_KEY_A, GPIO_KEY_EVENTS_EDGE_RISE);
+    ASSERT_INT(suite, "first button a", STACKEVENTS_BTN1, callback_event);
+
+    callback_event = -1;
+    fake_time_us = 20000;
+    gpio_callback(GPIO_KEY_A, GPIO_KEY_EVENTS_EDGE_RISE);
+    ASSERT_INT(suite, "duplicate rise ignored", -1, callback_event);
+
+    fake_time_us = 40000;
+    gpio_callback(GPIO_KEY_A, GPIO_KEY_EVENTS_EDGE_RISE);
+    ASSERT_INT(suite, "button a after debounce", STACKEVENTS_BTN1, callback_event);
+}
+
 static void test_gpio_ignores_when_mutex_busy(test_suite_t *suite) {
     reset_state();
     initialize_lcd_draw(capture_event);
@@ -234,6 +260,7 @@ int main(void) {
     RUN_TEST(&suite, test_gpio_up_wraps_selection);
     RUN_TEST(&suite, test_gpio_down_wraps_selection);
     RUN_TEST(&suite, test_gpio_buttons_enqueue_events);
+    RUN_TEST(&suite, test_gpio_button_debounces_duplicate_rise);
     RUN_TEST(&suite, test_gpio_ignores_when_mutex_busy);
 
     reset_state();
