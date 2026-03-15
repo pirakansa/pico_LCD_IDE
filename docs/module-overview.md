@@ -23,6 +23,8 @@ The current runtime flow is:
 5. Start LCD drawing and register the LCD event callback.
 6. Enter the main loop and repeatedly run USB device and HID tasks.
 
+See `docs/user-guides/startup-flow.md` for the full startup and runtime sequence.
+
 ## `main`
 
 Primary file: `src/main.c`
@@ -165,26 +167,7 @@ Current responsibilities:
 - Poll for new events on a fixed interval.
 - Convert button events into keyboard output sent to the host.
 
-### HID Polling Model
-
-`usb_hid_task()` polls every 10 ms.
-On each eligible tick it asks the caller for one event using the function pointer supplied by `main`.
-
-Behavior:
-
-- If USB is suspended and the event is `STACKEVENTS_INTERRUPT`, the module requests remote wakeup.
-- Otherwise it sends a keyboard report for the current event.
-
-### Current Output Mapping
-
-The HID keyboard payloads are currently hard-coded:
-
-- `BTN1`: types `mail@example.com`
-- `BTN2`: types `btn2 click!`
-- `BTN3`: types `btn3 click!`
-- `BTN4`: types `btn4 click!`
-
-This means the firmware currently behaves like a small USB keyboard macro device driven by the LCD board buttons.
+Detailed USB behavior, descriptors, polling, and event-to-output mapping are documented in `docs/reference/usb-hid.md`.
 
 ## `tests`
 
