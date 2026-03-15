@@ -108,12 +108,36 @@ tasks:
         -o build/tests/test_usb \
         src/usb/usb.c \
         src/usb/tests/test_usb.c
+      mkdir -p build/tests/ui-preview
+      cc -std=c11 -Wall -Wextra -pedantic -Wno-overlength-strings \
+        -I src/lcd/preview \
+        -I Pico_code/c/lib/Fonts \
+        -o build/tests/ui_preview \
+        src/lcd/preview/host_preview_support.c \
+        src/lcd/preview/preview_main.c \
+        Pico_code/c/lib/Fonts/font20.c
       run_host_test "events" ./build/tests/test_events
       run_host_test "lcd" ./build/tests/test_lcd
       run_host_test "pico" ./build/tests/test_pico
       run_host_test "main" ./build/tests/test_main
       run_host_test "usb" ./build/tests/test_usb
+      printf '\n[host-test] %s\n' "ui-preview"
+      ./build/tests/ui_preview build/tests/ui-preview
+      test -f build/tests/ui-preview/splash.ppm
+      test -f build/tests/ui-preview/menu_selected_3.ppm
     desc: run tests
+  ui-preview:
+    run: |
+      mkdir -p build/ui-preview
+      cc -std=c11 -Wall -Wextra -pedantic -Wno-overlength-strings \
+        -I src/lcd/preview \
+        -I Pico_code/c/lib/Fonts \
+        -o build/ui-preview/ui_preview \
+        src/lcd/preview/host_preview_support.c \
+        src/lcd/preview/preview_main.c \
+        Pico_code/c/lib/Fonts/font20.c
+      ./build/ui-preview/ui_preview build/ui-preview
+    desc: render LCD previews as PPM images
   build:
     run: |
       mkdir -p build
