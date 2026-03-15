@@ -1,9 +1,30 @@
 FROM ubuntu:24.04
 
-RUN apt update && \
-    apt install -y \
-        git cmake python3 build-essential \
-        gcc-arm-none-eabi libnewlib-arm-none-eabi libstdc++-arm-none-eabi-newlib
+ENV DEBIAN_FRONTEND=noninteractive \
+    LANG=C.UTF-8 \
+    LANGUAGE=en_US:en \
+    LC_ALL=C.UTF-8
 
-USER ubuntu
+USER root
 
+RUN apt update -y && \
+    apt install -y curl git sudo zstd make cmake python3 \
+        build-essential gcc-arm-none-eabi libnewlib-arm-none-eabi libstdc++-arm-none-eabi-newlib
+
+
+ARG CONTAINER_USERNAME=ubuntu
+ARG CONTAINER_USERID=1000
+
+RUN install --owner=${CONTAINER_USERNAME} --directory /work && \
+    echo "${CONTAINER_USERNAME} ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/container && \
+    chmod 440 /etc/sudoers.d/container && \
+    \
+    apt clean && \
+    rm -rf /var/log/* ; \
+    rm -rf /tmp/*
+
+USER ${CONTAINER_USERNAME}
+
+RUN curl -fsSL https://raw.githubusercontent.com/pirakansa/vorbere/main/install.sh | bash
+
+WORKDIR /work

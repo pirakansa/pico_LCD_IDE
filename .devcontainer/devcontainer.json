@@ -2,14 +2,11 @@
     "build": {
         "dockerfile": "Dockerfile"
     },
-    "customizations": {
-        "vscode": {
-            "settings": {
-                "editor.renderWhitespace": "boundary",
-                "editor.accessibilitySupport": "off",
-                "diffEditor.ignoreTrimWhitespace": false,
-                "C_Cpp.default.configurationProvider": "ms-vscode.cmake-tools"
-    }
-        }
+    "onCreateCommand": "sudo apt-get update && sudo apt-get install -y openssh-client",
+    "workspaceMount": "source=${localWorkspaceFolder},target=/work/${localWorkspaceFolderBasename},type=bind,consistency=cached",
+    "workspaceFolder": "/work/${localWorkspaceFolderBasename}",
+    "remoteUser": "ubuntu",
+    "remoteEnv": {
+        "PATH": "${containerEnv:PATH}:/home/ubuntu/.local/bin"
     }
 }
