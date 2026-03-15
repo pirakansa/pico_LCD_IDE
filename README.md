@@ -18,6 +18,10 @@ This project demonstrates how to use the Raspberry Pi Pico microcontroller with 
 - [Raspberry Pi Pico SDK](https://github.com/raspberrypi/pico-sdk)
 - [Raspberry Pi Pico Examples](https://github.com/raspberrypi/pico-examples)
 
+## Documentation
+
+- [Module Overview](docs/module-overview.md)
+
 
 ## Getting Started
 
