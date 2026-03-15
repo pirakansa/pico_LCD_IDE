@@ -4,6 +4,14 @@ This reference documents the shared event queue implemented in `src/events/event
 
 ## Scope
 
+```mermaid
+flowchart LR
+	Producer[producer callback] --> ENQ[enqueue]
+	ENQ --> Q[(ring buffer)]
+	Q --> DEQ[dequeue]
+	DEQ --> Consumer[consumer callback]
+```
+
 The queue is the handoff mechanism between event producers such as the LCD input path and consumers such as the USB HID runtime.
 
 ## Public Interface
@@ -36,6 +44,23 @@ Semantics:
 - `STACKEVENTS_BTN1` to `STACKEVENTS_BTN4`: button-originated action events
 
 ## Storage Model
+
+```mermaid
+flowchart LR
+	H[queue_head] --> S0[slot 0]
+	S0 --> S1[slot 1]
+	S1 --> S2[slot 2]
+	S2 --> Dots[...]
+	Dots --> S9[slot 9]
+	S9 --> T[queue_tail]
+```
+
+| Field | Meaning |
+| --- | --- |
+| `stackevents[QUEUE_SIZE]` | storage for queued event enums |
+| `queue_head` | index of the next dequeue slot |
+| `queue_tail` | index of the next enqueue slot |
+| `queue_cnt` | number of queued items |
 
 The queue is implemented as a fixed-size circular buffer.
 
@@ -77,6 +102,16 @@ This function should be called before any producer or consumer uses the queue.
 
 ## Enqueue Behavior
 
+```mermaid
+flowchart TD
+	A[enqueue event] --> B{queue_cnt >= QUEUE_SIZE?}
+	B -->|Yes| C[Return STACKEVENTS_FULL]
+	B -->|No| D[Write event at queue_tail]
+	D --> E[Advance tail modulo QUEUE_SIZE]
+	E --> F[Increment queue_cnt]
+	F --> G[Return inserted event]
+```
+
 `enqueue(stackevents_dt enq_data)` appends one event at the tail position.
 
 On success:
@@ -97,6 +132,17 @@ Overflow condition:
 - `QUEUE_SIZE <= queue_cnt`
 
 ## Dequeue Behavior
+
+```mermaid
+flowchart TD
+	A[dequeue] --> B{queue_cnt <= 0?}
+	B -->|Yes| C[Return STACKEVENTS_NONE]
+	B -->|No| D[Read event at queue_head]
+	D --> E[Reset slot to STACKEVENTS_NONE]
+	E --> F[Advance head modulo QUEUE_SIZE]
+	F --> G[Decrement queue_cnt]
+	G --> H[Return removed event]
+```
 
 `dequeue()` removes one event from the head position.
 

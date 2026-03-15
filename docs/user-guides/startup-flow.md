@@ -4,6 +4,21 @@ This guide describes the current firmware startup and runtime sequence implement
 
 ## Purpose
 
+```mermaid
+flowchart TD
+	A[main] --> B[initialize_board]
+	B --> C[initialize_ev_data]
+	C --> D[initialize_pico_module]
+	D --> E[initialize_lcd_module]
+	E --> F[initialize_usb_module]
+	F --> G[stdio_init_all]
+	G --> H[set_started_led_signal]
+	H --> I[initialize_lcd_draw]
+	I --> J[main loop]
+	J --> K[usb_device_task]
+	J --> L[usb_hid_task]
+```
+
 The firmware boot path is intentionally simple:
 
 1. Prepare shared state.
@@ -14,6 +29,18 @@ The firmware boot path is intentionally simple:
 This order matters because later modules depend on services created earlier in the sequence.
 
 ## Startup Sequence
+
+## Startup Summary
+
+| Step | Function | Purpose | On failure |
+| --- | --- | --- | --- |
+| 1 | `initialize_ev_data()` | reset shared queue state | startup aborts |
+| 2 | `initialize_pico_module()` | prepare LED and board support | startup aborts |
+| 3 | `initialize_lcd_module()` | prepare LCD low-level support | startup aborts |
+| 4 | `initialize_usb_module()` | start TinyUSB device support | startup aborts |
+| 5 | `stdio_init_all()` | enable debug I/O | no explicit failure path |
+| 6 | `set_started_led_signal()` | show positive startup state | no explicit failure path |
+| 7 | `initialize_lcd_draw()` | start UI and input handling | enters error LED loop |
 
 ### 1. `main()` enters the firmware path
 
@@ -85,6 +112,23 @@ If this step fails, the firmware enters `set_err_led_signal(2)` and stays in the
 
 ## Runtime Loop
 
+```mermaid
+sequenceDiagram
+	participant LCD as lcd interrupt path
+	participant MAIN as main callbacks
+	participant Q as events queue
+	participant USB as usb HID task
+	participant HOST as host
+
+	LCD->>MAIN: lcd_callback_t(STACKEVENTS_BTNx)
+	MAIN->>Q: enqueue(event)
+	USB->>MAIN: dequeue_events_callback()
+	MAIN->>Q: dequeue()
+	Q-->>MAIN: next event
+	MAIN-->>USB: stackevents_dt
+	USB->>HOST: keyboard report or remote wakeup
+```
+
 After startup succeeds, the firmware runs forever:
 
 1. `usb_device_task()` services the TinyUSB device stack.
@@ -103,6 +147,16 @@ The runtime event path is:
 5. The USB module either requests remote wakeup or sends keyboard output.
 
 ## Failure Model
+
+```mermaid
+flowchart TD
+	A[Initialization step fails] --> B[initialize_board returns non-zero]
+	B --> C[main returns]
+	D[initialize_lcd_draw fails] --> E[set_err_led_signal(2)]
+	E --> F[infinite blink loop]
+	G[queue overflow path] --> H[set_err_led_signal(10)]
+	H --> F
+```
 
 The current startup flow has two kinds of failure handling:
 

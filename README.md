@@ -20,6 +20,7 @@ This project demonstrates how to use the Raspberry Pi Pico microcontroller with 
 
 ## Documentation
 
+- [Documentation Index](docs/README.md)
 - [Module Overview](docs/module-overview.md)
 - [Startup Flow](docs/user-guides/startup-flow.md)
 - [USB HID Reference](docs/reference/usb-hid.md)

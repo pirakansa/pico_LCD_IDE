@@ -4,6 +4,14 @@ This reference describes the current LCD input handling implemented in `src/lcd/
 
 ## Scope
 
+```mermaid
+flowchart LR
+	GPIO[GPIO key interrupts] --> CB[gpio_callback]
+	CB --> UI[menu redraw]
+	CB --> EVT[lcd_event_callback]
+	EVT --> MAIN[main enqueue callback]
+```
+
 The LCD module handles two related responsibilities:
 
 - display initialization and menu drawing
@@ -22,6 +30,11 @@ Declared in `src/lcd/lcd.h`:
 `lcd_callback_t` is used by the LCD module to publish selected button presses as shared firmware events.
 
 ## Initialization Split
+
+| Stage | Function | Result |
+| --- | --- | --- |
+| low-level LCD setup | `initialize_lcd_module()` | LCD device and pins are prepared |
+| UI and input startup | `initialize_lcd_draw(callback)` | framebuffer, screens, and interrupts are active |
 
 The LCD setup is divided into two stages:
 
@@ -61,6 +74,18 @@ Return values:
 
 ## Interrupt Registration
 
+| Key | Interrupt enabled | Implemented behavior |
+| --- | --- | --- |
+| `GPIO_KEY_UP` | yes | move selection up |
+| `GPIO_KEY_DOWN` | yes | move selection down |
+| `GPIO_KEY_LEFT` | yes | none |
+| `GPIO_KEY_RIGHT` | yes | none |
+| `GPIO_KEY_A` | yes | emit `STACKEVENTS_BTN1` |
+| `GPIO_KEY_B` | yes | emit `STACKEVENTS_BTN2` |
+| `GPIO_KEY_X` | yes | emit `STACKEVENTS_BTN3` |
+| `GPIO_KEY_Y` | yes | emit `STACKEVENTS_BTN4` |
+| `GPIO_KEY_CTRL` | no | none |
+
 `initialize_lcd_event()` enables GPIO interrupts for these inputs:
 
 - `GPIO_KEY_UP`
@@ -77,6 +102,21 @@ Each listed key is configured for both rise and fall edge notifications.
 The callback registration is anchored by `gpio_set_irq_enabled_with_callback(...)` on `GPIO_KEY_UP`, and the remaining keys are enabled with `gpio_set_irq_enabled(...)`.
 
 ## GPIO Callback Behavior
+
+```mermaid
+flowchart TD
+	A[GPIO interrupt] --> B{mutex_try_enter succeeds?}
+	B -->|No| C[Print locked message and drop event]
+	B -->|Yes| D{Which key on rising edge?}
+	D -->|UP| E[Update selection and redraw]
+	D -->|DOWN| F[Update selection and redraw]
+	D -->|A B X Y| G[Emit STACKEVENTS_BTN1..BTN4]
+	D -->|Other| H[No state change]
+	E --> I[mutex_exit]
+	F --> I
+	G --> I
+	H --> I
+```
 
 The shared ISR-style handler is `gpio_callback(uint gpio, uint32_t events)`.
 

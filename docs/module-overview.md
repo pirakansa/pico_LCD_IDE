@@ -5,6 +5,25 @@ It is implementation-driven documentation: the code is the source of truth.
 
 ## High-Level Architecture
 
+```mermaid
+flowchart LR
+	MAIN[main]
+	LCD[lcd]
+	EVENTS[events]
+	USB[usb]
+	PICO[pico]
+	TESTS[tests]
+
+	MAIN --> PICO
+	MAIN --> LCD
+	MAIN --> USB
+	MAIN --> EVENTS
+	LCD --> EVENTS
+	USB --> EVENTS
+	TESTS --> MAIN
+	TESTS --> EVENTS
+```
+
 The firmware is split into a small set of focused modules:
 
 - `main`: startup order and module orchestration
@@ -24,6 +43,17 @@ The current runtime flow is:
 6. Enter the main loop and repeatedly run USB device and HID tasks.
 
 See `docs/user-guides/startup-flow.md` for the full startup and runtime sequence.
+
+## At A Glance
+
+| Module | Main role | Produces | Consumes |
+| --- | --- | --- | --- |
+| `main` | orchestration | callbacks, control flow | module APIs |
+| `events` | shared FIFO queue | queued events | producer input |
+| `pico` | board support | LED state, BOOTSEL state | Pico SDK hardware support |
+| `lcd` | display and button handling | button events, menu redraws | LCD board support |
+| `usb` | TinyUSB HID output | keyboard reports | queued events |
+| `tests` | host-side validation | test results | selected module interfaces |
 
 ## `main`
 
@@ -188,6 +218,17 @@ Current coverage includes:
 These tests do not verify real LCD, GPIO, or USB behavior on hardware.
 
 ## Module Interaction Summary
+
+```mermaid
+flowchart LR
+	Buttons[LCD buttons] --> LCD[lcd]
+	LCD -->|callback| MAIN[main]
+	MAIN -->|enqueue| EVENTS[events queue]
+	EVENTS -->|dequeue| MAIN
+	MAIN -->|event callback| USB[usb HID]
+	MAIN --> PICO[pico BOOTSEL and LED]
+	USB --> Host[Host computer]
+```
 
 - `lcd` produces button events.
 - `main` forwards those events into `events`.

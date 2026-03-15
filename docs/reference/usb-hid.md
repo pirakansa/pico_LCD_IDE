@@ -4,6 +4,14 @@ This reference documents the current USB HID implementation in `src/usb/usb.c`.
 
 ## Scope
 
+```mermaid
+flowchart LR
+	Buttons[Queued button events] --> USB[usb_hid_task]
+	BOOTSEL[STACKEVENTS_INTERRUPT] --> USB
+	USB --> REPORT[send_hid_report]
+	REPORT --> HOST[Host keyboard input]
+```
+
 The firmware currently exposes a TinyUSB-based HID keyboard device.
 Its behavior is event-driven and tied to the shared event queue managed by the rest of the firmware.
 
@@ -27,6 +35,14 @@ Return values:
 - `-1` when TinyUSB initialization fails
 
 ## USB Identity
+
+| Field | Value |
+| --- | --- |
+| USB version | `0x0110` |
+| Vendor ID | `0x1234` |
+| Product ID | `0xABCD` |
+| Device version | `0x0000` |
+| Configurations | `1` |
 
 The current device descriptor uses these values:
 
@@ -53,6 +69,24 @@ The configuration descriptor exposes one HID IN/OUT interface.
 
 ## Runtime Tasks
 
+```mermaid
+sequenceDiagram
+	participant MAIN as main
+	participant USB as usb_hid_task
+	participant DEV as TinyUSB device stack
+	participant HOST as host
+
+	MAIN->>DEV: usb_device_task / tud_task()
+	MAIN->>USB: usb_hid_task(get_new_event)
+	USB->>MAIN: get_new_event()
+	MAIN-->>USB: stackevents_dt
+	alt suspended and interrupt event
+		USB->>HOST: remote wakeup request
+	else button event available
+		USB->>HOST: keyboard report sequence
+	end
+```
+
 ### `usb_device_task()`
 
 Runs `tud_task()`.
@@ -71,6 +105,14 @@ On each eligible poll:
 
 ## Event-to-Output Mapping
 
+| Event | HID behavior |
+| --- | --- |
+| `STACKEVENTS_BTN1` | types `mail@example.com` |
+| `STACKEVENTS_BTN2` | types `btn2 click!` |
+| `STACKEVENTS_BTN3` | types `btn3 click!` |
+| `STACKEVENTS_BTN4` | types `btn4 click!` |
+| other events | no keyboard text |
+
 The keyboard payloads are hard-coded in `send_hid_report()`.
 
 Current mapping:
@@ -83,6 +125,18 @@ Current mapping:
 Events outside those mappings currently produce no keyboard text.
 
 ## String Typing Behavior
+
+```mermaid
+flowchart TD
+	A[Read next character] --> B[Resolve shift modifier]
+	B --> C[Send key press report]
+	C --> D[Wait 10 ms and run tud_task]
+	D --> E[Send empty release report]
+	E --> F[Wait 10 ms and run tud_task]
+	F --> G{More characters?}
+	G -->|Yes| A
+	G -->|No| H[Done]
+```
 
 `usb_hid_type_string()` sends one character at a time using the ASCII-to-keycode conversion table.
 
