@@ -141,13 +141,39 @@ tasks:
   build:
     run: |
       mkdir -p build
-      cmake -DPICO_BOARD=pico -S . -B ./build
+      set -- cmake -DPICO_BOARD=pico -S . -B ./build
+      if [ -n "${USB_BTN1_TEXT:-}" ]; then
+        set -- "$@" "-DUSB_BTN1_TEXT=${USB_BTN1_TEXT}"
+      fi
+      if [ -n "${USB_BTN2_TEXT:-}" ]; then
+        set -- "$@" "-DUSB_BTN2_TEXT=${USB_BTN2_TEXT}"
+      fi
+      if [ -n "${USB_BTN3_TEXT:-}" ]; then
+        set -- "$@" "-DUSB_BTN3_TEXT=${USB_BTN3_TEXT}"
+      fi
+      if [ -n "${USB_BTN4_TEXT:-}" ]; then
+        set -- "$@" "-DUSB_BTN4_TEXT=${USB_BTN4_TEXT}"
+      fi
+      "$@"
       make -C ./build
     desc: build artifacts
   build-pico2:
     run: |
       mkdir -p build-pico2
-      cmake -DPICO_BOARD=pico2 -S . -B ./build-pico2
+      set -- cmake -DPICO_BOARD=pico2 -S . -B ./build-pico2
+      if [ -n "${USB_BTN1_TEXT:-}" ]; then
+        set -- "$@" "-DUSB_BTN1_TEXT=${USB_BTN1_TEXT}"
+      fi
+      if [ -n "${USB_BTN2_TEXT:-}" ]; then
+        set -- "$@" "-DUSB_BTN2_TEXT=${USB_BTN2_TEXT}"
+      fi
+      if [ -n "${USB_BTN3_TEXT:-}" ]; then
+        set -- "$@" "-DUSB_BTN3_TEXT=${USB_BTN3_TEXT}"
+      fi
+      if [ -n "${USB_BTN4_TEXT:-}" ]; then
+        set -- "$@" "-DUSB_BTN4_TEXT=${USB_BTN4_TEXT}"
+      fi
+      "$@"
       make -C ./build-pico2
     desc: build firmware for Raspberry Pi Pico 2
   clean:

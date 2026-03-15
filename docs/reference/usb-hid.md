@@ -108,21 +108,38 @@ On each eligible poll:
 
 | Event | HID behavior |
 | --- | --- |
-| `STACKEVENTS_BTN1` | types `mail@example.com` |
-| `STACKEVENTS_BTN2` | types `btn2 click!` |
-| `STACKEVENTS_BTN3` | types `btn3 click!` |
-| `STACKEVENTS_BTN4` | types `btn4 click!` |
+| `STACKEVENTS_BTN1` | types `mail@example.com` by default |
+| `STACKEVENTS_BTN2` | types `btn2 click!` by default |
+| `STACKEVENTS_BTN3` | types `btn3 click!` by default |
+| `STACKEVENTS_BTN4` | types `btn4 click!` by default |
 | other events | no keyboard text |
 
 The keyboard payloads are centralized in `usb_event_text()`.
 `send_hid_report()` asks that helper for the text and only types when the helper returns a non-null pointer.
 
-Current mapping:
+Default mapping:
 
 - `STACKEVENTS_BTN1` -> `mail@example.com`
 - `STACKEVENTS_BTN2` -> `btn2 click!`
 - `STACKEVENTS_BTN3` -> `btn3 click!`
 - `STACKEVENTS_BTN4` -> `btn4 click!`
+
+These strings can be overridden at build time with compile definitions:
+
+- `USB_BTN1_TEXT`
+- `USB_BTN2_TEXT`
+- `USB_BTN3_TEXT`
+- `USB_BTN4_TEXT`
+
+With the repository task runner, pass them as environment variables before `vorbere run build`.
+
+Example:
+
+```sh
+USB_BTN1_TEXT='hello' \
+USB_BTN2_TEXT='world' \
+vorbere run build
+```
 
 Events outside those mappings currently produce no keyboard text.
 
@@ -160,7 +177,7 @@ This means each character is emitted as a press-and-release pair.
 
 ## Constraints and Current Limitations
 
-- Output strings are compile-time constants.
+- Output strings are compile-time constants, but they can be overridden per build.
 - Only keyboard HID behavior is implemented.
 - `tud_hid_get_report_cb()` returns `0` and does not provide custom report data.
 - `tud_hid_set_report_cb()` ignores host-sent reports.

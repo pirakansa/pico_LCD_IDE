@@ -3,6 +3,22 @@
 #include "../usb.h"
 #include "../../tests/test_support.h"
 
+#ifndef USB_BTN1_TEXT
+#define USB_BTN1_TEXT "mail@example.com"
+#endif
+
+#ifndef USB_BTN2_TEXT
+#define USB_BTN2_TEXT "btn2 click!"
+#endif
+
+#ifndef USB_BTN3_TEXT
+#define USB_BTN3_TEXT "btn3 click!"
+#endif
+
+#ifndef USB_BTN4_TEXT
+#define USB_BTN4_TEXT "btn4 click!"
+#endif
+
 int initialize_usb_module(void);
 void send_hid_report(uint8_t report_id, stackevents_dt ev);
 extern uint32_t usb_hid_task_start_ms;
@@ -95,10 +111,10 @@ static void test_usb_event_text_maps_supported_events(test_suite_t *suite) {
     const char *btn4 = usb_event_text(STACKEVENTS_BTN4);
     const char *none = usb_event_text(STACKEVENTS_NONE);
 
-    ASSERT_INT(suite, "btn1 first char", 'm', btn1[0]);
-    ASSERT_INT(suite, "btn2 first char", 'b', btn2[0]);
-    ASSERT_INT(suite, "btn3 suffix", '3', btn3[3]);
-    ASSERT_INT(suite, "btn4 suffix", '4', btn4[3]);
+    ASSERT_STRING(suite, "btn1 text", USB_BTN1_TEXT, btn1);
+    ASSERT_STRING(suite, "btn2 text", USB_BTN2_TEXT, btn2);
+    ASSERT_STRING(suite, "btn3 text", USB_BTN3_TEXT, btn3);
+    ASSERT_STRING(suite, "btn4 text", USB_BTN4_TEXT, btn4);
     ASSERT_PTR(suite, "none is null", NULL, none);
 }
 
@@ -138,7 +154,7 @@ static void test_usb_hid_task_sends_keyboard_report(test_suite_t *suite) {
     usb_hid_task(get_event);
 
     ASSERT_INT(suite, "event source calls", 1, event_source_calls);
-    ASSERT_INT(suite, "reports sent", 22, keyboard_report_calls);
+    ASSERT_INT(suite, "reports sent", (int)(strlen(USB_BTN2_TEXT) * 2u), keyboard_report_calls);
 }
 
 static void test_send_hid_report_skips_when_not_ready(test_suite_t *suite) {

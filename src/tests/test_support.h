@@ -1,6 +1,7 @@
 #ifndef _PICO_LCD_SRC_TESTS_TEST_SUPPORT_
 #define _PICO_LCD_SRC_TESTS_TEST_SUPPORT_
 
+#include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -77,6 +78,28 @@ static inline void test_fail_ptr_impl(
     exit(1);
 }
 
+static inline void test_fail_string_impl(
+    test_suite_t *suite,
+    const char *file,
+    int line,
+    const char *assertion_name,
+    const char *expected,
+    const char *actual
+) {
+    fprintf(
+        stderr,
+        "[FAIL] %s :: %s\n  location: %s:%d\n  assertion: %s\n  expected: %s\n  actual: %s\n",
+        suite->suite_name,
+        suite->current_test,
+        file,
+        line,
+        assertion_name,
+        expected ? expected : "(null)",
+        actual ? actual : "(null)"
+    );
+    exit(1);
+}
+
 #define ASSERT_INT(suite, name, expected, actual) \
     do { \
         int expected_value__ = (expected); \
@@ -92,6 +115,15 @@ static inline void test_fail_ptr_impl(
         const void *actual_value__ = (const void *)(actual); \
         if (expected_value__ != actual_value__) { \
             test_fail_ptr_impl((suite), __FILE__, __LINE__, (name), expected_value__, actual_value__); \
+        } \
+    } while (0)
+
+#define ASSERT_STRING(suite, name, expected, actual) \
+    do { \
+        const char *expected_value__ = (expected); \
+        const char *actual_value__ = (actual); \
+        if ((expected_value__ == NULL) || (actual_value__ == NULL) || strcmp(expected_value__, actual_value__) != 0) { \
+            test_fail_string_impl((suite), __FILE__, __LINE__, (name), expected_value__, actual_value__); \
         } \
     } while (0)
 

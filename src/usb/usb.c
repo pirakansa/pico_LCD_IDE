@@ -52,6 +52,22 @@ void sleep_ms(uint32_t ms);
 #include "bsp/board_api.h"
 #endif
 
+#ifndef USB_BTN1_TEXT
+#define USB_BTN1_TEXT "mail@example.com"
+#endif
+
+#ifndef USB_BTN2_TEXT
+#define USB_BTN2_TEXT "btn2 click!"
+#endif
+
+#ifndef USB_BTN3_TEXT
+#define USB_BTN3_TEXT "btn3 click!"
+#endif
+
+#ifndef USB_BTN4_TEXT
+#define USB_BTN4_TEXT "btn4 click!"
+#endif
+
 #ifdef HOST_TEST
 uint8_t const conv_table[128][2] = {{0, 0}};
 #else
@@ -173,13 +189,13 @@ void usb_device_task(){
 const char *usb_event_text(stackevents_dt ev) {
     switch (ev) {
         case STACKEVENTS_BTN1:
-            return "mail@example.com";
+            return USB_BTN1_TEXT;
         case STACKEVENTS_BTN2:
-            return "btn2 click!";
+            return USB_BTN2_TEXT;
         case STACKEVENTS_BTN3:
-            return "btn3 click!";
+            return USB_BTN3_TEXT;
         case STACKEVENTS_BTN4:
-            return "btn4 click!";
+            return USB_BTN4_TEXT;
         default:
             return NULL;
     }
