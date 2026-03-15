@@ -51,6 +51,9 @@ tasks:
         -c src/lcd/lcd.c \
         -o build/check/lcd_check.o
       cc -std=c11 -Wall -Wextra -Werror -pedantic -DHOST_TEST \
+        -c src/lcd/lcd_input.c \
+        -o build/check/lcd_input_check.o
+      cc -std=c11 -Wall -Wextra -Werror -pedantic -DHOST_TEST \
         -c src/lcd/tests/test_lcd.c \
         -o build/check/test_lcd_check.o
       cc -std=c11 -Wall -Wextra -Werror -pedantic -DHOST_TEST \
@@ -88,6 +91,7 @@ tasks:
       cc -std=c11 -Wall -Wextra -pedantic -DHOST_TEST \
         -o build/tests/test_lcd \
         src/lcd/lcd.c \
+        src/lcd/lcd_input.c \
         src/lcd/tests/test_lcd.c
       cc -std=c11 -Wall -Wextra -pedantic -DHOST_TEST \
         -o build/tests/test_pico \

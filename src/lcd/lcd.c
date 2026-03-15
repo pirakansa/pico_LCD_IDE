@@ -1,99 +1,17 @@
-#ifdef HOST_TEST
-#include <stdbool.h>
-#include <stdint.h>
-#include <stdio.h>
-#include <stdlib.h>
+#include "lcd_internal.h"
 
-#include "gpios.h"
-#include "lcd.h"
-
-typedef unsigned int uint;
-typedef unsigned short UWORD;
-typedef unsigned char UBYTE;
-typedef unsigned int UDOUBLE;
-
-typedef struct {
-    UWORD WIDTH;
-    UWORD HEIGHT;
-} lcd_1in3_t;
-
-typedef struct {
-    int unused;
-} mutex_t;
-
-extern lcd_1in3_t LCD_1IN3;
-extern void *counter_mutex;
-extern int menu_count;
-
-int DEV_Module_Init(void);
-void DEV_SET_PWM(int pwm);
-void LCD_1IN3_Init(int orientation);
-void LCD_1IN3_Clear(UWORD color);
-void SET_Infrared_PIN(int pin);
-void Paint_NewImage(UBYTE *image, UWORD width, UWORD height, int rotate, UWORD color);
-void Paint_SetScale(int scale);
-void Paint_SetRotate(int rotate);
-void Paint_Clear(UWORD color);
-int draw_splash_screen(UWORD *image);
-int draw_menu_screen(UWORD *image);
-int draw_radio_menu_screen(UWORD *image, int selected);
-void DEV_Delay_ms(int ms);
-int mutex_try_enter(void *mutex, uint32_t *owner);
-void mutex_exit(void *mutex);
-void gpio_set_irq_enabled_with_callback(uint gpio, uint32_t events, _Bool enabled, void (*callback)(uint, uint32_t));
-void gpio_set_irq_enabled(uint gpio, uint32_t events, _Bool enabled);
-
-#define auto_init_mutex(name) void *name = NULL
-#define WHITE 0
-#define HORIZONTAL 0
-#define ROTATE_0 0
-#define LCD_1IN3_HEIGHT 240
-#define LCD_1IN3_WIDTH 240
-#define LCD_MENU_COUNT menu_count
-#else
-#include "GUI_Paint.h"
-#include "LCD_1in3.h"
-#include "DEV_Config.h"
-#include "Infrared.h"
-#include "gpios.h"
+#ifndef HOST_TEST
 #include "DrawData.h"
-
-#include "pico/mutex.h"
-#include "lcd.h"
-#define LCD_MENU_COUNT ((int)(sizeof menu_lists / sizeof menu_lists[0]))
 #endif
 
 #define GPIO_KEY_UX_PUSH_WAIT 250
 
-int initialize_liblcd();
-int initialize_lcd_event();
+static UWORD *black_image;
+static int selected_menu_index;
+static lcd_callback_t lcd_event_callback;
 
-UWORD *BlackImage;
-volatile int select_menu_idx;
-static lcd_callback_t lcd_event_callback = NULL;
-
-auto_init_mutex(counter_mutex);
-
-int lcd_menu_next_index(int current, int direction, int menu_count) {
-    if (menu_count <= 0) {
-        return 0;
-    }
-
-    if (direction < 0) {
-        return (current - 1 < 0) ? menu_count - 1 : current - 1;
-    }
-
-    if (direction > 0) {
-        return (menu_count - 1 < current + 1) ? 0 : current + 1;
-    }
-
-    return current;
-}
-
-
-
-int initialize_liblcd(){
-    if(DEV_Module_Init()!=0){
+static int initialize_liblcd(void) {
+    if (DEV_Module_Init() != 0) {
         return -1;
     }
 
@@ -115,114 +33,102 @@ int initialize_liblcd(){
     return 0;
 }
 
-int initialize_lcd_module(){
-    return initialize_liblcd();
-}
+static int allocate_lcd_buffer(void) {
+    UDOUBLE image_size = LCD_1IN3_HEIGHT * LCD_1IN3_WIDTH * 2;
 
-
-void gpio_callback(uint gpio, uint32_t events) {
-    uint32_t owner;
-    if (!mutex_try_enter(&counter_mutex,&owner)) {
-        printf("Mutex is already locked\n");
-        return;
-    };
-    printf("GPIO EV %d %d\n", gpio, events);
-
-    if( (GPIO_KEY_UP==gpio) && (GPIO_KEY_EVENTS_EDGE_RISE==events)){
-        select_menu_idx = lcd_menu_next_index(select_menu_idx, -1, LCD_MENU_COUNT);
-        draw_radio_menu_screen(BlackImage, select_menu_idx);
-    } else if( (GPIO_KEY_DOWN==gpio) && (GPIO_KEY_EVENTS_EDGE_RISE==events)){
-        select_menu_idx = lcd_menu_next_index(select_menu_idx, 1, LCD_MENU_COUNT);
-        draw_radio_menu_screen(BlackImage, select_menu_idx);
-    } else if( (GPIO_KEY_A==gpio) && (GPIO_KEY_EVENTS_EDGE_RISE==events)){
-        if (lcd_event_callback) {
-            lcd_event_callback(STACKEVENTS_BTN1);
-        }
-    } else if( (GPIO_KEY_B==gpio) && (GPIO_KEY_EVENTS_EDGE_RISE==events)){
-        if (lcd_event_callback) {
-            lcd_event_callback(STACKEVENTS_BTN2);
-        }
-    } else if( (GPIO_KEY_X==gpio) && (GPIO_KEY_EVENTS_EDGE_RISE==events)){
-        if (lcd_event_callback) {
-            lcd_event_callback(STACKEVENTS_BTN3);
-        }
-    } else if( (GPIO_KEY_Y==gpio) && (GPIO_KEY_EVENTS_EDGE_RISE==events)){
-        if (lcd_event_callback) {
-            lcd_event_callback(STACKEVENTS_BTN4);
-        }
+    black_image = (UWORD *)malloc(image_size);
+    if (black_image == NULL) {
+        printf("Failed to apply for black memory...\r\n");
+        return -1;
     }
-    mutex_exit(&counter_mutex);
-}
-
-int initialize_lcd_event(){
-    // The IO IRQs are independent per-processor. This method affects only the processor that calls the function.
-    // - https://www.raspberrypi.com/documentation/pico-sdk/hardware.html
-    gpio_set_irq_enabled_with_callback(
-        GPIO_KEY_UP,
-        GPIO_KEY_EVENTS_EDGE_FALL|GPIO_KEY_EVENTS_EDGE_RISE,
-        true,
-        &gpio_callback
-    );
-    gpio_set_irq_enabled(
-        GPIO_KEY_DOWN,
-        GPIO_KEY_EVENTS_EDGE_FALL|GPIO_KEY_EVENTS_EDGE_RISE,
-        true
-    );
-    gpio_set_irq_enabled(
-        GPIO_KEY_LEFT,
-        GPIO_KEY_EVENTS_EDGE_FALL|GPIO_KEY_EVENTS_EDGE_RISE,
-        true
-    );
-    gpio_set_irq_enabled(
-        GPIO_KEY_RIGHT,
-        GPIO_KEY_EVENTS_EDGE_FALL|GPIO_KEY_EVENTS_EDGE_RISE,
-        true
-    );
-    gpio_set_irq_enabled(
-        GPIO_KEY_A,
-        GPIO_KEY_EVENTS_EDGE_FALL|GPIO_KEY_EVENTS_EDGE_RISE,
-        true
-    );
-    gpio_set_irq_enabled(
-        GPIO_KEY_B,
-        GPIO_KEY_EVENTS_EDGE_FALL|GPIO_KEY_EVENTS_EDGE_RISE,
-        true
-    );
-    gpio_set_irq_enabled(
-        GPIO_KEY_X,
-        GPIO_KEY_EVENTS_EDGE_FALL|GPIO_KEY_EVENTS_EDGE_RISE,
-        true
-    );
-    gpio_set_irq_enabled(
-        GPIO_KEY_Y,
-        GPIO_KEY_EVENTS_EDGE_FALL|GPIO_KEY_EVENTS_EDGE_RISE,
-        true
-    );
 
     return 0;
+}
+
+static void draw_initial_screens(void) {
+    Paint_NewImage((UBYTE *)black_image, LCD_1IN3.WIDTH, LCD_1IN3.HEIGHT, 0, WHITE);
+    Paint_SetScale(65);
+    Paint_SetRotate(ROTATE_0);
+    Paint_Clear(WHITE);
+
+    draw_splash_screen(black_image);
+    DEV_Delay_ms(GPIO_KEY_UX_PUSH_WAIT);
+
+    selected_menu_index = 0;
+    draw_menu_screen(black_image);
+    draw_radio_menu_screen(black_image, selected_menu_index);
+}
+
+int lcd_menu_next_index(int current, int direction, int menu_count) {
+    if (menu_count <= 0) {
+        return 0;
+    }
+
+    if (direction < 0) {
+        return (current - 1 < 0) ? menu_count - 1 : current - 1;
+    }
+
+    if (direction > 0) {
+        return (menu_count - 1 < current + 1) ? 0 : current + 1;
+    }
+
+    return current;
+}
+
+int initialize_lcd_module(void) {
+    return initialize_liblcd();
 }
 
 int initialize_lcd_draw(lcd_callback_t callback) {
     lcd_event_callback = callback;
 
-    UDOUBLE Imagesize = LCD_1IN3_HEIGHT * LCD_1IN3_WIDTH * 2;
-    if((BlackImage = (UWORD *)malloc(Imagesize)) == NULL) {
-        printf("Failed to apply for black memory...\r\n");
+    if (allocate_lcd_buffer() != 0) {
         return -1;
     }
-    // /*1.Create a new image cache named IMAGE_RGB and fill it with white*/
-    Paint_NewImage((UBYTE *)BlackImage, LCD_1IN3.WIDTH, LCD_1IN3.HEIGHT, 0, WHITE);
-    Paint_SetScale(65);
-    Paint_SetRotate(ROTATE_0);
-    Paint_Clear(WHITE);
 
-    draw_splash_screen(BlackImage);
-    DEV_Delay_ms(GPIO_KEY_UX_PUSH_WAIT);
-
-    select_menu_idx = 0;
-    draw_menu_screen(BlackImage);
+    draw_initial_screens();
     initialize_lcd_event();
-    draw_radio_menu_screen(BlackImage, select_menu_idx);
 
     return 0;
 }
+
+UWORD *lcd_current_image(void) {
+    return black_image;
+}
+
+int lcd_current_menu_index(void) {
+    return selected_menu_index;
+}
+
+void lcd_set_current_menu_index(int index) {
+    selected_menu_index = index;
+}
+
+int lcd_current_menu_count(void) {
+    return LCD_MENU_COUNT;
+}
+
+lcd_callback_t lcd_current_callback(void) {
+    return lcd_event_callback;
+}
+
+#ifdef HOST_TEST
+void *lcd_test_image_buffer(void) {
+    return black_image;
+}
+
+int lcd_test_selected_menu_index(void) {
+    return selected_menu_index;
+}
+
+void lcd_test_set_selected_menu_index(int index) {
+    selected_menu_index = index;
+}
+
+void lcd_test_reset_runtime_state(void) {
+    free(black_image);
+    black_image = NULL;
+    selected_menu_index = 0;
+    lcd_event_callback = NULL;
+}
+#endif

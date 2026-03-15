@@ -24,10 +24,10 @@ auto_init_mutex(events_queue_mutex);
 
 #define QUEUE_SIZE 10
 
-stackevents_dt stackevents[QUEUE_SIZE] = {STACKEVENTS_NONE};
-volatile int queue_head;
-volatile int queue_tail;
-volatile int queue_cnt;
+static stackevents_dt stackevents[QUEUE_SIZE] = {STACKEVENTS_NONE};
+static volatile int queue_head;
+static volatile int queue_tail;
+static volatile int queue_cnt;
 
 // Initialize the event queue
 int initialize_ev_data(){
@@ -74,3 +74,25 @@ stackevents_dt dequeue() {
     mutex_exit(&events_queue_mutex);
     return deq_data;
 }
+
+#ifdef HOST_TEST
+int events_debug_head(void) {
+    return queue_head;
+}
+
+int events_debug_tail(void) {
+    return queue_tail;
+}
+
+int events_debug_count(void) {
+    return queue_cnt;
+}
+
+stackevents_dt events_debug_slot(int index) {
+    if (index < 0 || index >= QUEUE_SIZE) {
+        return STACKEVENTS_NONE;
+    }
+
+    return stackevents[index];
+}
+#endif

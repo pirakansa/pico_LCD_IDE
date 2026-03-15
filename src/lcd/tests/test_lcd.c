@@ -13,9 +13,6 @@ typedef struct {
     UWORD HEIGHT;
 } lcd_1in3_t;
 
-extern UWORD *BlackImage;
-extern volatile int select_menu_idx;
-
 int initialize_lcd_draw(lcd_callback_t callback);
 void gpio_callback(uint gpio, uint32_t events);
 
@@ -44,9 +41,7 @@ static void reset_state(void) {
     pwm_value = -1;
     splash_calls = 0;
     menu_calls = 0;
-    select_menu_idx = 0;
-    free(BlackImage);
-    BlackImage = NULL;
+    lcd_test_reset_runtime_state();
 }
 
 int DEV_Module_Init(void) {
@@ -150,9 +145,10 @@ static void test_initialize_lcd_draw_sets_up_host_state(test_suite_t *suite) {
     ASSERT_INT(suite, "splash draw", 1, splash_calls);
     ASSERT_INT(suite, "menu draw", 1, menu_calls);
     ASSERT_INT(suite, "radio draw", 1, draw_radio_calls);
-    ASSERT_INT(suite, "selected reset", 0, select_menu_idx);
+    ASSERT_INT(suite, "selected reset", 0, lcd_test_selected_menu_index());
     ASSERT_INT(suite, "registered callback irqs", 1, irq_with_callback_calls);
     ASSERT_INT(suite, "registered secondary irqs", 7, irq_enabled_calls);
+    ASSERT_PTR(suite, "buffer allocated", (void *)1, lcd_test_image_buffer() ? (void *)1 : NULL);
 }
 
 static void test_lcd_menu_next_index_wraps_and_ignores_invalid_counts(test_suite_t *suite) {
@@ -179,22 +175,22 @@ static void test_initialize_lcd_module_configures_display(test_suite_t *suite) {
 static void test_gpio_up_wraps_selection(test_suite_t *suite) {
     reset_state();
     initialize_lcd_draw(capture_event);
-    select_menu_idx = 0;
+    lcd_test_set_selected_menu_index(0);
 
     gpio_callback(GPIO_KEY_UP, GPIO_KEY_EVENTS_EDGE_RISE);
 
-    ASSERT_INT(suite, "selection wrapped", 3, select_menu_idx);
+    ASSERT_INT(suite, "selection wrapped", 3, lcd_test_selected_menu_index());
     ASSERT_INT(suite, "radio redraw selected", 3, draw_radio_selected);
 }
 
 static void test_gpio_down_wraps_selection(test_suite_t *suite) {
     reset_state();
     initialize_lcd_draw(capture_event);
-    select_menu_idx = 3;
+    lcd_test_set_selected_menu_index(3);
 
     gpio_callback(GPIO_KEY_DOWN, GPIO_KEY_EVENTS_EDGE_RISE);
 
-    ASSERT_INT(suite, "selection wrapped", 0, select_menu_idx);
+    ASSERT_INT(suite, "selection wrapped", 0, lcd_test_selected_menu_index());
     ASSERT_INT(suite, "radio redraw selected", 0, draw_radio_selected);
 }
 
@@ -219,11 +215,11 @@ static void test_gpio_ignores_when_mutex_busy(test_suite_t *suite) {
     reset_state();
     initialize_lcd_draw(capture_event);
     mutex_try_enter_rc = 0;
-    select_menu_idx = 1;
+    lcd_test_set_selected_menu_index(1);
 
     gpio_callback(GPIO_KEY_DOWN, GPIO_KEY_EVENTS_EDGE_RISE);
 
-    ASSERT_INT(suite, "selection unchanged", 1, select_menu_idx);
+    ASSERT_INT(suite, "selection unchanged", 1, lcd_test_selected_menu_index());
     ASSERT_INT(suite, "no redraw", 1, draw_radio_calls);
 }
 

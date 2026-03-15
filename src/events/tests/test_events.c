@@ -1,11 +1,6 @@
 #include "../events.h"
 #include "../../tests/test_support.h"
 
-extern stackevents_dt stackevents[];
-extern volatile int queue_head;
-extern volatile int queue_tail;
-extern volatile int queue_cnt;
-
 static void test_initialize_and_underflow(test_suite_t *suite) {
     ASSERT_INT(suite, "initialize_ev_data", 0, initialize_ev_data());
     ASSERT_INT(suite, "dequeue empty", STACKEVENTS_NONE, dequeue());
@@ -65,9 +60,9 @@ static void test_initialize_clears_queue_state(test_suite_t *suite) {
     dequeue();
 
     ASSERT_INT(suite, "re-initialize", 0, initialize_ev_data());
-    ASSERT_INT(suite, "head reset", 0, queue_head);
-    ASSERT_INT(suite, "tail reset", 0, queue_tail);
-    ASSERT_INT(suite, "count reset", 0, queue_cnt);
+    ASSERT_INT(suite, "head reset", 0, events_debug_head());
+    ASSERT_INT(suite, "tail reset", 0, events_debug_tail());
+    ASSERT_INT(suite, "count reset", 0, events_debug_count());
     ASSERT_INT(suite, "queue empty after reinitialize", STACKEVENTS_NONE, dequeue());
 }
 
@@ -76,7 +71,7 @@ static void test_dequeue_clears_slot(test_suite_t *suite) {
     enqueue(STACKEVENTS_BTN4);
 
     ASSERT_INT(suite, "dequeue btn4", STACKEVENTS_BTN4, dequeue());
-    ASSERT_INT(suite, "slot cleared", STACKEVENTS_NONE, stackevents[0]);
+    ASSERT_INT(suite, "slot cleared", STACKEVENTS_NONE, events_debug_slot(0));
 }
 
 static void test_overflow_does_not_mutate_indices(test_suite_t *suite) {
@@ -90,14 +85,14 @@ static void test_overflow_does_not_mutate_indices(test_suite_t *suite) {
         enqueue(STACKEVENTS_BTN1);
     }
 
-    head_before = queue_head;
-    tail_before = queue_tail;
-    count_before = queue_cnt;
+    head_before = events_debug_head();
+    tail_before = events_debug_tail();
+    count_before = events_debug_count();
 
     ASSERT_INT(suite, "overflow no mutate", STACKEVENTS_FULL, enqueue(STACKEVENTS_BTN2));
-    ASSERT_INT(suite, "head unchanged", head_before, queue_head);
-    ASSERT_INT(suite, "tail unchanged", tail_before, queue_tail);
-    ASSERT_INT(suite, "count unchanged", count_before, queue_cnt);
+    ASSERT_INT(suite, "head unchanged", head_before, events_debug_head());
+    ASSERT_INT(suite, "tail unchanged", tail_before, events_debug_tail());
+    ASSERT_INT(suite, "count unchanged", count_before, events_debug_count());
 }
 
 int main(void) {
