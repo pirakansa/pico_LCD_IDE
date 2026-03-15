@@ -54,6 +54,20 @@ In host-test builds guarded by `HOST_TEST`, `main()` returns the result of `init
 `initialize_board()` declares binary information metadata through `bi_decl()`.
 This is used by Pico tooling and does not affect control flow beyond metadata registration.
 
+### 2.5 Startup status code is derived
+
+`initialize_board()` now uses a small helper to convert individual module return codes into a single startup result.
+
+Current result values:
+
+- `0`: startup preparation succeeded
+- `-1`: event queue initialization failed
+- `-2`: Pico board support initialization failed
+- `-3`: LCD low-level initialization failed
+- `-4`: USB initialization failed
+
+The helper reports the first failing stage in startup order.
+
 ### 3. Event queue is initialized
 
 `initialize_ev_data()` resets the shared event queue state.
@@ -162,6 +176,8 @@ The current startup flow has two kinds of failure handling:
 
 - early return on initialization failure inside `initialize_board()`
 - infinite error LED loop when LCD draw initialization fails or when the queue overflow path escalates to `set_err_led_signal()`
+
+The early-return path now preserves which initialization stage failed through the numeric return code listed above.
 
 There is no recovery path once the firmware enters the error LED loop.
 

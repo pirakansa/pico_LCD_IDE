@@ -47,12 +47,30 @@ tasks:
       cc -std=c11 -Wall -Wextra -Werror -pedantic -DHOST_TEST \
         -c src/events/tests/test_events.c \
         -o build/check/test_events_check.o
+      cc -std=c11 -Wall -Wextra -Werror -pedantic -DHOST_TEST \
+        -c src/lcd/lcd.c \
+        -o build/check/lcd_check.o
+      cc -std=c11 -Wall -Wextra -Werror -pedantic -DHOST_TEST \
+        -c src/lcd/tests/test_lcd.c \
+        -o build/check/test_lcd_check.o
+      cc -std=c11 -Wall -Wextra -Werror -pedantic -DHOST_TEST \
+        -c src/pico/pico.c \
+        -o build/check/pico_check.o
+      cc -std=c11 -Wall -Wextra -Werror -pedantic -DHOST_TEST \
+        -c src/pico/tests/test_pico.c \
+        -o build/check/test_pico_check.o
       cc -std=c11 -Wall -Wextra -Werror -pedantic -DHOST_TEST -Dmain=firmware_main \
         -c src/main.c \
         -o build/check/main_check.o
       cc -std=c11 -Wall -Wextra -Werror -pedantic -DHOST_TEST \
         -c src/tests/test_main.c \
         -o build/check/test_main_check.o
+      cc -std=c11 -Wall -Wextra -Werror -pedantic -DHOST_TEST \
+        -c src/usb/usb.c \
+        -o build/check/usb_check.o
+      cc -std=c11 -Wall -Wextra -Werror -pedantic -DHOST_TEST \
+        -c src/usb/tests/test_usb.c \
+        -o build/check/test_usb_check.o
     desc: run static checks
   test:
     run: |
@@ -61,6 +79,14 @@ tasks:
         -o build/tests/test_events \
         src/events/events.c \
         src/events/tests/test_events.c
+      cc -std=c11 -Wall -Wextra -pedantic -DHOST_TEST \
+        -o build/tests/test_lcd \
+        src/lcd/lcd.c \
+        src/lcd/tests/test_lcd.c
+      cc -std=c11 -Wall -Wextra -pedantic -DHOST_TEST \
+        -o build/tests/test_pico \
+        src/pico/pico.c \
+        src/pico/tests/test_pico.c
       cc -std=c11 -Wall -Wextra -pedantic -DHOST_TEST -Dmain=firmware_main \
         -c src/main.c \
         -o build/tests/main_host.o
@@ -68,8 +94,15 @@ tasks:
         -o build/tests/test_main \
         build/tests/main_host.o \
         src/tests/test_main.c
+      cc -std=c11 -Wall -Wextra -pedantic -DHOST_TEST \
+        -o build/tests/test_usb \
+        src/usb/usb.c \
+        src/usb/tests/test_usb.c
       ./build/tests/test_events
+      ./build/tests/test_lcd
+      ./build/tests/test_pico
       ./build/tests/test_main
+      ./build/tests/test_usb
     desc: run tests
   build:
     run: |

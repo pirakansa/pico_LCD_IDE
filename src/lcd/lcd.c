@@ -1,3 +1,56 @@
+#ifdef HOST_TEST
+#include <stdbool.h>
+#include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
+
+#include "gpios.h"
+#include "lcd.h"
+
+typedef unsigned int uint;
+typedef unsigned short UWORD;
+typedef unsigned char UBYTE;
+typedef unsigned int UDOUBLE;
+
+typedef struct {
+    UWORD WIDTH;
+    UWORD HEIGHT;
+} lcd_1in3_t;
+
+typedef struct {
+    int unused;
+} mutex_t;
+
+extern lcd_1in3_t LCD_1IN3;
+extern void *counter_mutex;
+extern int menu_count;
+
+int DEV_Module_Init(void);
+void DEV_SET_PWM(int pwm);
+void LCD_1IN3_Init(int orientation);
+void LCD_1IN3_Clear(UWORD color);
+void SET_Infrared_PIN(int pin);
+void Paint_NewImage(UBYTE *image, UWORD width, UWORD height, int rotate, UWORD color);
+void Paint_SetScale(int scale);
+void Paint_SetRotate(int rotate);
+void Paint_Clear(UWORD color);
+int draw_splash_screen(UWORD *image);
+int draw_menu_screen(UWORD *image);
+int draw_radio_menu_screen(UWORD *image, int selected);
+void DEV_Delay_ms(int ms);
+int mutex_try_enter(void *mutex, uint32_t *owner);
+void mutex_exit(void *mutex);
+void gpio_set_irq_enabled_with_callback(uint gpio, uint32_t events, _Bool enabled, void (*callback)(uint, uint32_t));
+void gpio_set_irq_enabled(uint gpio, uint32_t events, _Bool enabled);
+
+#define auto_init_mutex(name) void *name = NULL
+#define WHITE 0
+#define HORIZONTAL 0
+#define ROTATE_0 0
+#define LCD_1IN3_HEIGHT 240
+#define LCD_1IN3_WIDTH 240
+#define LCD_MENU_COUNT menu_count
+#else
 #include "GUI_Paint.h"
 #include "LCD_1in3.h"
 #include "DEV_Config.h"
@@ -7,6 +60,8 @@
 
 #include "pico/mutex.h"
 #include "lcd.h"
+#define LCD_MENU_COUNT ((int)(sizeof menu_lists / sizeof menu_lists[0]))
+#endif
 
 #define GPIO_KEY_UX_PUSH_WAIT 250
 
@@ -18,6 +73,22 @@ volatile int select_menu_idx;
 static lcd_callback_t lcd_event_callback = NULL;
 
 auto_init_mutex(counter_mutex);
+
+int lcd_menu_next_index(int current, int direction, int menu_count) {
+    if (menu_count <= 0) {
+        return 0;
+    }
+
+    if (direction < 0) {
+        return (current - 1 < 0) ? menu_count - 1 : current - 1;
+    }
+
+    if (direction > 0) {
+        return (menu_count - 1 < current + 1) ? 0 : current + 1;
+    }
+
+    return current;
+}
 
 
 
@@ -58,12 +129,10 @@ void gpio_callback(uint gpio, uint32_t events) {
     printf("GPIO EV %d %d\n", gpio, events);
 
     if( (GPIO_KEY_UP==gpio) && (GPIO_KEY_EVENTS_EDGE_RISE==events)){
-        int menusCount = sizeof menu_lists / sizeof menu_lists[0];
-        select_menu_idx = (select_menu_idx-1 < 0) ? menusCount-1 : select_menu_idx-1;
+        select_menu_idx = lcd_menu_next_index(select_menu_idx, -1, LCD_MENU_COUNT);
         draw_radio_menu_screen(BlackImage, select_menu_idx);
     } else if( (GPIO_KEY_DOWN==gpio) && (GPIO_KEY_EVENTS_EDGE_RISE==events)){
-        int menusCount = sizeof menu_lists / sizeof menu_lists[0];
-        select_menu_idx = (menusCount-1 < select_menu_idx+1) ? 0 : select_menu_idx+1;
+        select_menu_idx = lcd_menu_next_index(select_menu_idx, 1, LCD_MENU_COUNT);
         draw_radio_menu_screen(BlackImage, select_menu_idx);
     } else if( (GPIO_KEY_A==gpio) && (GPIO_KEY_EVENTS_EDGE_RISE==events)){
         if (lcd_event_callback) {

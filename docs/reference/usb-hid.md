@@ -22,6 +22,7 @@ Declared in `src/usb/usb.h`:
 - `int initialize_usb_module();`
 - `void usb_device_task();`
 - `void usb_hid_task(get_new_event_t func);`
+- `const char *usb_event_text(stackevents_dt ev);`
 
 `get_new_event_t` is a function pointer type that returns one `stackevents_dt` value.
 
@@ -113,7 +114,8 @@ On each eligible poll:
 | `STACKEVENTS_BTN4` | types `btn4 click!` |
 | other events | no keyboard text |
 
-The keyboard payloads are hard-coded in `send_hid_report()`.
+The keyboard payloads are centralized in `usb_event_text()`.
+`send_hid_report()` asks that helper for the text and only types when the helper returns a non-null pointer.
 
 Current mapping:
 
@@ -123,6 +125,12 @@ Current mapping:
 - `STACKEVENTS_BTN4` -> `btn4 click!`
 
 Events outside those mappings currently produce no keyboard text.
+
+This includes:
+
+- `STACKEVENTS_NONE`
+- `STACKEVENTS_FULL`
+- `STACKEVENTS_INTERRUPT`
 
 ## String Typing Behavior
 

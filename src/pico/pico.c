@@ -1,3 +1,10 @@
+#ifdef HOST_TEST
+#include <stdint.h>
+
+#define PICO_DEFAULT_LED_PIN 25
+#define GPIO_OUT 1
+#define PICO_OK 0
+#else
 #include "pico/stdlib.h"
 #include "boards/pico.h"
 
@@ -9,6 +16,7 @@
 #include "hardware/sync.h"
 #include "hardware/structs/ioqspi.h"
 #include "hardware/structs/sio.h"
+#endif
 
 #include "./pico.h"
 
@@ -27,6 +35,9 @@ void pico_set_led(bool);
  * Returns true if the button is pressed, false otherwise.
  */
 bool __no_inline_not_in_flash_func(get_bootsel_button_state)() {
+#ifdef HOST_TEST
+    return host_bootsel_button_state;
+#else
     const uint CS_PIN_INDEX = 1;
 
     // Must disable interrupts, as interrupt handlers may be in flash, and we
@@ -59,6 +70,7 @@ bool __no_inline_not_in_flash_func(get_bootsel_button_state)() {
     restore_interrupts(flags);
 
     return button_state;
+#endif
 }
 
 /**
@@ -85,6 +97,16 @@ void set_started_led_signal() {
  * The LED blinks `count` times, pauses, and repeats indefinitely.
  */
 void set_err_led_signal(int count) {
+#ifdef HOST_TEST
+    host_last_err_led_count = count;
+    for (int i = 0; i < count ; i++) {
+        pico_set_led(true);
+        sleep_ms(500);
+        pico_set_led(false);
+        sleep_ms(500);
+    }
+    sleep_ms(2000);
+#else
     while(true){
         for (int i = 0; i < count ; i++) {
             pico_set_led(true);
@@ -94,6 +116,7 @@ void set_err_led_signal(int count) {
         }
         sleep_ms(2000);
     }
+#endif
 }
 
 /**
@@ -103,6 +126,10 @@ void set_err_led_signal(int count) {
 int pico_led_init(void) {
 #ifdef PICO_CYW43_SUPPORTED
     return cyw43_arch_init();
+#elif defined(HOST_TEST)
+    gpio_init(PICO_DEFAULT_LED_PIN);
+    gpio_set_dir(PICO_DEFAULT_LED_PIN, GPIO_OUT);
+    return host_pico_led_init_rc;
 #else
     gpio_init(PICO_DEFAULT_LED_PIN);
     gpio_set_dir(PICO_DEFAULT_LED_PIN, GPIO_OUT);
@@ -116,7 +143,9 @@ int pico_led_init(void) {
  */
 int initialize_libpico(){
     int rc = pico_led_init();
-    hard_assert(rc == PICO_OK);
+    if (rc != PICO_OK) {
+        return -1;
+    }
 
     pico_set_led(false);
 
@@ -131,5 +160,9 @@ int initialize_pico_module(){
     return initialize_libpico();
 }
 
-
+#ifdef HOST_TEST
+int host_pico_led_init_rc;
+bool host_bootsel_button_state;
+int host_last_err_led_count;
+#endif
 

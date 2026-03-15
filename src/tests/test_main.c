@@ -8,6 +8,7 @@
 
 int initialize_board(void);
 int firmware_main(void);
+int board_init_step_result(int event_rc, int pico_rc, int lcd_rc, int usb_rc);
 void enqueue_events_callback(stackevents_dt ev);
 stackevents_dt dequeue_events_callback(void);
 
@@ -143,7 +144,7 @@ static void test_initialize_board_stops_on_error(void) {
     reset_state();
     lcd_init_rc = -1;
 
-    assert_int("initialize_board failure", -1, initialize_board());
+    assert_int("initialize_board failure", -3, initialize_board());
     assert_int("event init calls", 1, event_init_calls);
     assert_int("pico init calls", 1, pico_init_calls);
     assert_int("lcd init calls", 1, lcd_init_calls);
@@ -165,7 +166,7 @@ static void test_initialize_board_stops_on_pico_error(void) {
     reset_state();
     pico_init_rc = -1;
 
-    assert_int("initialize_board failure", -1, initialize_board());
+    assert_int("initialize_board failure", -2, initialize_board());
     assert_int("event init calls", 1, event_init_calls);
     assert_int("pico init calls", 1, pico_init_calls);
     assert_int("lcd init calls", 0, lcd_init_calls);
@@ -176,7 +177,7 @@ static void test_initialize_board_stops_on_usb_error(void) {
     reset_state();
     usb_init_rc = -1;
 
-    assert_int("initialize_board failure", -1, initialize_board());
+    assert_int("initialize_board failure", -4, initialize_board());
     assert_int("event init calls", 1, event_init_calls);
     assert_int("pico init calls", 1, pico_init_calls);
     assert_int("lcd init calls", 1, lcd_init_calls);
@@ -225,14 +226,23 @@ static void test_host_main_returns_initialize_board_result(void) {
     reset_state();
     usb_init_rc = -1;
 
-    assert_int("firmware main result", -1, firmware_main());
+    assert_int("firmware main result", -4, firmware_main());
     assert_int("event init calls", 1, event_init_calls);
     assert_int("pico init calls", 1, pico_init_calls);
     assert_int("lcd init calls", 1, lcd_init_calls);
     assert_int("usb init calls", 1, usb_init_calls);
 }
 
+static void test_board_init_step_result_prioritizes_first_failure(void) {
+    assert_int("step result ok", 0, board_init_step_result(0, 0, 0, 0));
+    assert_int("step result event", -1, board_init_step_result(-1, -1, -1, -1));
+    assert_int("step result pico", -2, board_init_step_result(0, -1, -1, -1));
+    assert_int("step result lcd", -3, board_init_step_result(0, 0, -1, -1));
+    assert_int("step result usb", -4, board_init_step_result(0, 0, 0, -1));
+}
+
 int main(void) {
+    test_board_init_step_result_prioritizes_first_failure();
     test_initialize_board_success();
     test_initialize_board_stops_on_error();
     test_initialize_board_stops_on_event_error();
