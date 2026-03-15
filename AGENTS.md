@@ -4,32 +4,11 @@ This document is the README for AI coding agents. It complements the human-facin
 
 ---
 
+## Scope
 
-## Documentation of Process vs Policy
-
-This repository separates **policy** from **how-to guidance**:
-
-- **AGENTS.md = Policy (MUST/MUST NOT)**  
-  Contains the mandatory rules agents must follow (e.g., language requirements, required sections, validation expectations, boundaries).
-  Keep it short and stable.
-
-- **SKILLS = Procedure / Templates / Checklists**  
-  Contains step-by-step workflows, templates, and checklists used to comply with policy.
-  Prefer updating skills when improving writing structure or workflow details.
-
-Rule of thumb:
-- If it is a non-negotiable rule for reviews/CI: put it in **AGENTS.md**.
-- If it is an example, template, or writing process: put it in a **skill**.
-
-
----
-
-## Setup Steps
-
-* Recommended: VS Code Dev Container / GitHub Codespaces (use the `.devcontainer/` image).
-* Base packages: `sudo apt-get install build-essential`.
-* Rust toolchain: `rustup default stable` (rustfmt/clippy components are required).
-* Task runner: `vorbere.yaml` via `vorbere run <task>` (CI uses the tasks described later).
+* Treat this file as the primary agent policy for the repository root.
+* Prefer explicit user instructions when they conflict with general guidance.
+* Keep changes minimal and aligned with the current codebase; do not perform broad cleanup unless requested.
 
 ---
 
@@ -45,134 +24,96 @@ Rule of thumb:
 
 ## Project Structure
 
-We follow the **package layout described in The Cargo Book** for a project consisting of a single binary plus shared library code.
+This repository is a Raspberry Pi Pico firmware project written in C and built with CMake.
+
+Current notable structure:
 
 ```
 .
-├── Cargo.toml
-├── Cargo.lock
+├── CMakeLists.txt
 ├── vorbere.yaml
 ├── src/
-│   ├── lib.rs
-│   ├── main.rs
-│   └── bin/
-│       ├── named-executable.rs
-│       ├── another-executable.rs
-│       └── multi-file-executable/
-│           ├── main.rs
-│           └── some_module.rs
-└── tests/
-    ├── some-integration-tests.rs
-    └── multi-file-test/
-        ├── main.rs
-        └── test_module.rs
+│   ├── main.c
+│   ├── events/
+│   ├── lcd/
+│   ├── pico/
+│   └── usb/
+├── Pico_code/
+├── pico-sdk/
+└── pico-examples/
 ```
 
-### Roles and Guidelines
+Rules:
 
-* Keep business logic in `lib.rs` or `src/<module>.rs`; limit `main.rs` to startup/DI/argument handling.
-* Integration tests go under `tests/`, exercising public APIs.
-* Place new files under the directories above; avoid introducing new top-level folders without discussion.
+* Keep application code under `src/`.
+* Keep module-local build definitions in the existing `src/*/CMakeLists.txt` files.
+* Do not introduce new top-level directories unless the user asks for that explicitly.
+* Treat `pico-sdk/`, `pico-examples/`, and `Pico_code/` as vendored or upstream-derived content unless the task clearly requires editing them.
 
-### Agent-Specific Rules
+---
 
-* Place new files according to the directory guidelines above; avoid introducing unnecessary top-level directories.
-* When modifying existing functions, add or update unit tests and confirm `vorbere run test` passes.
-* When writing files or accessing external resources, use temporary directories so existing test data is not overwritten.
+## Setup And Build
 
+* Primary task runner: `vorbere run <task>`.
+* Build command: `vorbere run build`.
+* Direct build flow currently used by the repository:
+
+```sh
+mkdir -p build
+cmake -DPICO_BOARD=pico -S . -B ./build
+make -C ./build
+```
+
+* Cleanup command: `vorbere run clean`.
+* If a task requires additional tooling, prefer updating `vorbere.yaml` instead of inventing ad-hoc undocumented commands.
+
+---
+
+## Validation Policy
+
+Agents must check the real task definitions before claiming validation coverage.
+
+Current repository state:
+
+* `vorbere run build` performs a real firmware build.
+* `vorbere run check` is currently a placeholder command.
+* `vorbere run test` is currently a placeholder command.
+
+Rules:
+
+* Run `vorbere run build` before and after substantive code changes when feasible.
+* Run `vorbere run check` and `vorbere run test` as well, but do not describe them as meaningful static analysis or test coverage until their task bodies are implemented.
+* If validation is incomplete because a task is a placeholder, say that explicitly in the final report.
+* When modifying behavior, add validation that matches the current stack when practical, such as build verification or targeted host-side checks.
 
 ---
 
 ## Coding Standards
 
-* Always run `vorbere run check` and ensure all included static checks pass with no warnings (CI requirement).
-* Prefer `thiserror` for error types; use `anyhow` only in binaries.
-* Naming: modules in `snake_case`, types in `UpperCamelCase`.
-* Extract magic numbers/URLs into constants with meaningful names.
-* Avoid unrelated large refactors; keep changes minimal in scope.
+* Use C for firmware changes unless the repository already uses C++ in the touched area.
+* Follow the existing naming and file layout in each module instead of imposing a new style.
+* Keep `src/main.c` focused on initialization and high-level orchestration when possible.
+* Put module logic in the existing module directories under `src/`.
+* Extract repeated literals into named constants when doing so improves clarity without expanding scope.
+* Avoid unrelated refactors.
 
 ---
 
-## Testing & Verification
+## CMake And Dependencies
 
-* Unit tests: `vorbere run test`
-* For additional file or network operations, use temp directories or `httptest` to avoid external dependencies.
-* When command behavior changes, keep usage examples in `README.md` and fixtures under `test` consistent.
-
-### Static Analysis / Lint / Vulnerability Scanning
-
-* Run `vorbere run check` as the default entry point for static analysis, linting, vulnerability scanning, and related verification.
-* If needed, use underlying component commands only to investigate or isolate specific failures (for example, `vorbere run vulnerability`).
+* Prefer editing existing `CMakeLists.txt` files in place rather than introducing parallel build systems.
+* Keep library boundaries consistent with the current structure (`libpico`, `liblcd`, `libusb`, `libevent`).
+* Do not replace submodule-based dependencies with fetched network dependencies unless the user asks for that change.
+* Obtain user approval before adding new external dependencies or updating submodules.
 
 ---
 
-## CI Requirements
+## Testing And Hardware Assumptions
 
-GitHub Actions (`.github/workflows/ci.yml`) runs the following:
-
-* `vorbere run check`
-* `vorbere run test`
-* `vorbere run build`
-
-Confirm `vorbere run check` / `vorbere run test` / `vorbere run build` succeed locally before opening a PR. If they fail, format and validate locally, then rerun.
-
----
-
-## Security & Data Handling
-
-* Do not commit secrets or confidential information.
-* Do not log personal or authentication data in logs or error messages.
-* Use fictitious URLs and passwords in test data; avoid hitting real services.
-* Obtain user approval before accessing external networks (disabled by default in the agent environment).
-
----
-
-## Agent Notes
-
-* If multiple `AGENTS.md` files exist, reference the one closest to your working directory (this repository only has the top-level file).
-* When instructions conflict, prioritize explicit user prompts and clarify any uncertainties.
-* Before and after your work, ensure `vorbere run check`, `vorbere run test`, and `vorbere run build` all succeed; report the cause and fix if any of them fail.
-
----
-
-## Branch Workflow (GitHub Flow)
-
-This project follows **GitHub Flow** based on `main`.
-
-* **main branch**: Always releasable. Direct commits are forbidden; use pull requests.
-* **Feature branches (`feature/<topic>`)**: Branch from `main` for new features or enhancements, then open a PR when done.
-* **Hotfix branches (`hotfix/<issue>`)**: Branch from `main` for urgent fixes, merge promptly after CI passes.
-
-### Rules
-
-* Always branch from `main`.
-* Assign reviewers when opening a PR and merge only after CI passes.
-* Feel free to delete branches after merging.
-
----
-
-
-## Commit Message Policy
-
-Commit messages MUST follow **Conventional Commits** and MUST be written in **English**.
-
-### Header
-`type(scope?): description`
-
-- `type`: feat / fix / docs / style / refactor / test / chore
-- `scope`: optional (module/package/directory)
-- `description`: concise present-tense English summary
-
-### Body
-- First body line MUST state the **WHY** (reason for the change) in a single English sentence.
-- Then list the **HOW** as per-file bullet points in English (`path: concrete change`).
-- Do not claim tests passed unless they were actually run.
-
-### Granularity
-- One semantic change per commit.
-- Keep generated files separate when practical; do not mix with other changes.
-
-For structured authoring (template, checklist), use the skill: `conventional-commits-authoring`.
+* This repository does not currently contain a real automated test suite under `tests/`.
+* Do not claim hardware behavior was verified unless you actually ran it on hardware.
+* If a change affects GPIO, LCD, USB HID, interrupts, or board-specific behavior, call out that hardware validation is still required unless it was performed.
+* Prefer host-independent validation where possible, but do not fabricate coverage that the repository does not have.
 
 ---
 
