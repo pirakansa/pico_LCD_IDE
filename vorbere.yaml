@@ -1,0 +1,25 @@
+version: 1
+tasks:
+  setup:
+    run: |
+      curl -sfL https://raw.githubusercontent.com/alajmo/mani/main/install.sh | sh
+      mani sync -p
+    desc: prepare the workspace
+  check:
+    run: "echo define static checks command"
+    desc: run static checks
+  test:
+    run: "echo define test command"
+    desc: run tests
+  build:
+    run: |
+      mkdir -p build
+      cmake -DPICO_BOARD=pico -S . -B ./build
+      make -C ./build
+    desc: build artifacts
+  clean:
+    run: |
+      make -C ./build clean
+    desc: clean the workspace
+  ci:
+    depends_on: [setup, check, test, build]
