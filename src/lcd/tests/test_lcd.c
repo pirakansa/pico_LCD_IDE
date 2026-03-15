@@ -1,9 +1,8 @@
 #include <stdint.h>
-#include <stdio.h>
-#include <stdlib.h>
 
 #include "../lcd.h"
 #include "../gpios.h"
+#include "../../tests/test_support.h"
 
 typedef unsigned int uint;
 typedef unsigned short UWORD;
@@ -33,17 +32,6 @@ static int irq_enabled_calls;
 static int pwm_value = -1;
 static int splash_calls;
 static int menu_calls;
-
-static void fail(const char *name, int expected, int actual) {
-    fprintf(stderr, "%s failed: expected %d, got %d\n", name, expected, actual);
-    exit(1);
-}
-
-static void assert_int(const char *name, int expected, int actual) {
-    if (expected != actual) {
-        fail(name, expected, actual);
-    }
-}
 
 static void reset_state(void) {
     dev_module_init_rc = 0;
@@ -155,79 +143,79 @@ static void capture_event(stackevents_dt ev) {
     callback_event = ev;
 }
 
-static void test_initialize_lcd_draw_sets_up_host_state(void) {
+static void test_initialize_lcd_draw_sets_up_host_state(test_suite_t *suite) {
     reset_state();
 
-    assert_int("initialize_lcd_draw rc", 0, initialize_lcd_draw(capture_event));
-    assert_int("splash draw", 1, splash_calls);
-    assert_int("menu draw", 1, menu_calls);
-    assert_int("radio draw", 1, draw_radio_calls);
-    assert_int("selected reset", 0, select_menu_idx);
-    assert_int("registered callback irqs", 1, irq_with_callback_calls);
-    assert_int("registered secondary irqs", 7, irq_enabled_calls);
+    ASSERT_INT(suite, "initialize_lcd_draw rc", 0, initialize_lcd_draw(capture_event));
+    ASSERT_INT(suite, "splash draw", 1, splash_calls);
+    ASSERT_INT(suite, "menu draw", 1, menu_calls);
+    ASSERT_INT(suite, "radio draw", 1, draw_radio_calls);
+    ASSERT_INT(suite, "selected reset", 0, select_menu_idx);
+    ASSERT_INT(suite, "registered callback irqs", 1, irq_with_callback_calls);
+    ASSERT_INT(suite, "registered secondary irqs", 7, irq_enabled_calls);
 }
 
-static void test_lcd_menu_next_index_wraps_and_ignores_invalid_counts(void) {
-    assert_int("menu up wrap", 3, lcd_menu_next_index(0, -1, 4));
-    assert_int("menu down wrap", 0, lcd_menu_next_index(3, 1, 4));
-    assert_int("menu down advance", 2, lcd_menu_next_index(1, 1, 4));
-    assert_int("menu unchanged invalid count", 0, lcd_menu_next_index(2, -1, 0));
+static void test_lcd_menu_next_index_wraps_and_ignores_invalid_counts(test_suite_t *suite) {
+    ASSERT_INT(suite, "menu up wrap", 3, lcd_menu_next_index(0, -1, 4));
+    ASSERT_INT(suite, "menu down wrap", 0, lcd_menu_next_index(3, 1, 4));
+    ASSERT_INT(suite, "menu down advance", 2, lcd_menu_next_index(1, 1, 4));
+    ASSERT_INT(suite, "menu unchanged invalid count", 0, lcd_menu_next_index(2, -1, 0));
 }
 
-static void test_initialize_lcd_draw_propagates_init_error(void) {
+static void test_initialize_lcd_draw_propagates_init_error(test_suite_t *suite) {
     reset_state();
     dev_module_init_rc = -1;
 
-    assert_int("initialize_lcd_draw rc", -1, initialize_lcd_module());
+    ASSERT_INT(suite, "initialize_lcd_draw rc", -1, initialize_lcd_module());
 }
 
-static void test_initialize_lcd_module_configures_display(void) {
+static void test_initialize_lcd_module_configures_display(test_suite_t *suite) {
     reset_state();
 
-    assert_int("initialize_lcd_module rc", 0, initialize_lcd_module());
-    assert_int("pwm configured", 50, pwm_value);
+    ASSERT_INT(suite, "initialize_lcd_module rc", 0, initialize_lcd_module());
+    ASSERT_INT(suite, "pwm configured", 50, pwm_value);
 }
 
-static void test_gpio_up_wraps_selection(void) {
+static void test_gpio_up_wraps_selection(test_suite_t *suite) {
     reset_state();
     initialize_lcd_draw(capture_event);
     select_menu_idx = 0;
 
     gpio_callback(GPIO_KEY_UP, GPIO_KEY_EVENTS_EDGE_RISE);
 
-    assert_int("selection wrapped", 3, select_menu_idx);
-    assert_int("radio redraw selected", 3, draw_radio_selected);
+    ASSERT_INT(suite, "selection wrapped", 3, select_menu_idx);
+    ASSERT_INT(suite, "radio redraw selected", 3, draw_radio_selected);
 }
 
-static void test_gpio_down_wraps_selection(void) {
+static void test_gpio_down_wraps_selection(test_suite_t *suite) {
     reset_state();
     initialize_lcd_draw(capture_event);
     select_menu_idx = 3;
 
     gpio_callback(GPIO_KEY_DOWN, GPIO_KEY_EVENTS_EDGE_RISE);
 
-    assert_int("selection wrapped", 0, select_menu_idx);
-    assert_int("radio redraw selected", 0, draw_radio_selected);
+    ASSERT_INT(suite, "selection wrapped", 0, select_menu_idx);
+    ASSERT_INT(suite, "radio redraw selected", 0, draw_radio_selected);
 }
 
-static void test_gpio_buttons_enqueue_events(void) {
+static void test_gpio_buttons_enqueue_events(test_suite_t *suite) {
     reset_state();
     initialize_lcd_draw(capture_event);
 
     gpio_callback(GPIO_KEY_A, GPIO_KEY_EVENTS_EDGE_RISE);
-    assert_int("button a", STACKEVENTS_BTN1, callback_event);
+    ASSERT_INT(suite, "button a", STACKEVENTS_BTN1, callback_event);
 
     gpio_callback(GPIO_KEY_B, GPIO_KEY_EVENTS_EDGE_RISE);
-    assert_int("button b", STACKEVENTS_BTN2, callback_event);
+    ASSERT_INT(suite, "button b", STACKEVENTS_BTN2, callback_event);
 
     gpio_callback(GPIO_KEY_X, GPIO_KEY_EVENTS_EDGE_RISE);
-    assert_int("button x", STACKEVENTS_BTN3, callback_event);
+    ASSERT_INT(suite, "button x", STACKEVENTS_BTN3, callback_event);
 
     gpio_callback(GPIO_KEY_Y, GPIO_KEY_EVENTS_EDGE_RISE);
-    assert_int("button y", STACKEVENTS_BTN4, callback_event);
+    ASSERT_INT(suite, "button y", STACKEVENTS_BTN4, callback_event);
 }
 
-static void test_gpio_ignores_when_mutex_busy(void) {
+static void test_gpio_ignores_when_mutex_busy(test_suite_t *suite) {
     reset_state();
     initialize_lcd_draw(capture_event);
     mutex_try_enter_rc = 0;
@@ -235,21 +223,24 @@ static void test_gpio_ignores_when_mutex_busy(void) {
 
     gpio_callback(GPIO_KEY_DOWN, GPIO_KEY_EVENTS_EDGE_RISE);
 
-    assert_int("selection unchanged", 1, select_menu_idx);
-    assert_int("no redraw", 1, draw_radio_calls);
+    ASSERT_INT(suite, "selection unchanged", 1, select_menu_idx);
+    ASSERT_INT(suite, "no redraw", 1, draw_radio_calls);
 }
 
 int main(void) {
-    test_initialize_lcd_draw_sets_up_host_state();
-    test_lcd_menu_next_index_wraps_and_ignores_invalid_counts();
-    test_initialize_lcd_draw_propagates_init_error();
-    test_initialize_lcd_module_configures_display();
-    test_gpio_up_wraps_selection();
-    test_gpio_down_wraps_selection();
-    test_gpio_buttons_enqueue_events();
-    test_gpio_ignores_when_mutex_busy();
+    test_suite_t suite;
+
+    test_suite_begin(&suite, "lcd");
+    RUN_TEST(&suite, test_initialize_lcd_draw_sets_up_host_state);
+    RUN_TEST(&suite, test_lcd_menu_next_index_wraps_and_ignores_invalid_counts);
+    RUN_TEST(&suite, test_initialize_lcd_draw_propagates_init_error);
+    RUN_TEST(&suite, test_initialize_lcd_module_configures_display);
+    RUN_TEST(&suite, test_gpio_up_wraps_selection);
+    RUN_TEST(&suite, test_gpio_down_wraps_selection);
+    RUN_TEST(&suite, test_gpio_buttons_enqueue_events);
+    RUN_TEST(&suite, test_gpio_ignores_when_mutex_busy);
 
     reset_state();
-    printf("lcd tests passed\n");
+    test_suite_end(&suite);
     return 0;
 }

@@ -1,9 +1,7 @@
-#include <stdbool.h>
 #include <stdint.h>
-#include <stdio.h>
-#include <stdlib.h>
 
 #include "../usb.h"
+#include "../../tests/test_support.h"
 
 int initialize_usb_module(void);
 void send_hid_report(uint8_t report_id, stackevents_dt ev);
@@ -24,17 +22,6 @@ static int last_modifier = -1;
 static int last_keycode = -1;
 static int event_source_calls;
 static stackevents_dt next_event = STACKEVENTS_NONE;
-
-static void fail(const char *name, int expected, int actual) {
-    fprintf(stderr, "%s failed: expected %d, got %d\n", name, expected, actual);
-    exit(1);
-}
-
-static void assert_int(const char *name, int expected, int actual) {
-    if (expected != actual) {
-        fail(name, expected, actual);
-    }
-}
 
 static void reset_state(void) {
     tud_init_rc = true;
@@ -92,45 +79,45 @@ static stackevents_dt get_event(void) {
     return next_event;
 }
 
-static void test_initialize_usb_module_reports_tud_init_result(void) {
+static void test_initialize_usb_module_reports_tud_init_result(test_suite_t *suite) {
     reset_state();
     tud_init_rc = true;
-    assert_int("initialize success", 0, initialize_usb_module());
+    ASSERT_INT(suite, "initialize success", 0, initialize_usb_module());
 
     tud_init_rc = false;
-    assert_int("initialize failure", -1, initialize_usb_module());
+    ASSERT_INT(suite, "initialize failure", -1, initialize_usb_module());
 }
 
-static void test_usb_event_text_maps_supported_events(void) {
+static void test_usb_event_text_maps_supported_events(test_suite_t *suite) {
     const char *btn1 = usb_event_text(STACKEVENTS_BTN1);
     const char *btn2 = usb_event_text(STACKEVENTS_BTN2);
     const char *btn3 = usb_event_text(STACKEVENTS_BTN3);
     const char *btn4 = usb_event_text(STACKEVENTS_BTN4);
     const char *none = usb_event_text(STACKEVENTS_NONE);
 
-    assert_int("btn1 first char", 'm', btn1[0]);
-    assert_int("btn2 first char", 'b', btn2[0]);
-    assert_int("btn3 suffix", '3', btn3[3]);
-    assert_int("btn4 suffix", '4', btn4[3]);
-    assert_int("none is null", 1, none == NULL);
+    ASSERT_INT(suite, "btn1 first char", 'm', btn1[0]);
+    ASSERT_INT(suite, "btn2 first char", 'b', btn2[0]);
+    ASSERT_INT(suite, "btn3 suffix", '3', btn3[3]);
+    ASSERT_INT(suite, "btn4 suffix", '4', btn4[3]);
+    ASSERT_PTR(suite, "none is null", NULL, none);
 }
 
-static void test_usb_event_text_returns_null_for_non_text_events(void) {
-    assert_int("interrupt is null", 1, usb_event_text(STACKEVENTS_INTERRUPT) == NULL);
-    assert_int("full is null", 1, usb_event_text(STACKEVENTS_FULL) == NULL);
+static void test_usb_event_text_returns_null_for_non_text_events(test_suite_t *suite) {
+    ASSERT_PTR(suite, "interrupt is null", NULL, usb_event_text(STACKEVENTS_INTERRUPT));
+    ASSERT_PTR(suite, "full is null", NULL, usb_event_text(STACKEVENTS_FULL));
 }
 
-static void test_usb_hid_task_waits_for_interval(void) {
+static void test_usb_hid_task_waits_for_interval(test_suite_t *suite) {
     reset_state();
     fake_millis = 5;
 
     usb_hid_task(get_event);
 
-    assert_int("event source calls", 0, event_source_calls);
-    assert_int("no report before interval", 0, keyboard_report_calls);
+    ASSERT_INT(suite, "event source calls", 0, event_source_calls);
+    ASSERT_INT(suite, "no report before interval", 0, keyboard_report_calls);
 }
 
-static void test_usb_hid_task_wakes_host_on_interrupt(void) {
+static void test_usb_hid_task_wakes_host_on_interrupt(test_suite_t *suite) {
     reset_state();
     fake_millis = 10;
     suspended = true;
@@ -138,40 +125,42 @@ static void test_usb_hid_task_wakes_host_on_interrupt(void) {
 
     usb_hid_task(get_event);
 
-    assert_int("event source calls", 1, event_source_calls);
-    assert_int("remote wakeup", 1, remote_wakeup_calls);
-    assert_int("no keyboard report", 0, keyboard_report_calls);
+    ASSERT_INT(suite, "event source calls", 1, event_source_calls);
+    ASSERT_INT(suite, "remote wakeup", 1, remote_wakeup_calls);
+    ASSERT_INT(suite, "no keyboard report", 0, keyboard_report_calls);
 }
 
-static void test_usb_hid_task_sends_keyboard_report(void) {
+static void test_usb_hid_task_sends_keyboard_report(test_suite_t *suite) {
     reset_state();
     fake_millis = 10;
     next_event = STACKEVENTS_BTN2;
 
     usb_hid_task(get_event);
 
-    assert_int("event source calls", 1, event_source_calls);
-    assert_int("reports sent", 22, keyboard_report_calls);
+    ASSERT_INT(suite, "event source calls", 1, event_source_calls);
+    ASSERT_INT(suite, "reports sent", 22, keyboard_report_calls);
 }
 
-static void test_send_hid_report_skips_when_not_ready(void) {
+static void test_send_hid_report_skips_when_not_ready(test_suite_t *suite) {
     reset_state();
     hid_ready = false;
 
     send_hid_report(REPORT_ID_KEYBOARD, STACKEVENTS_BTN1);
 
-    assert_int("reports skipped", 0, keyboard_report_calls);
+    ASSERT_INT(suite, "reports skipped", 0, keyboard_report_calls);
 }
 
 int main(void) {
-    test_initialize_usb_module_reports_tud_init_result();
-    test_usb_event_text_maps_supported_events();
-    test_usb_event_text_returns_null_for_non_text_events();
-    test_usb_hid_task_waits_for_interval();
-    test_usb_hid_task_wakes_host_on_interrupt();
-    test_usb_hid_task_sends_keyboard_report();
-    test_send_hid_report_skips_when_not_ready();
+    test_suite_t suite;
 
-    printf("usb tests passed\n");
+    test_suite_begin(&suite, "usb");
+    RUN_TEST(&suite, test_initialize_usb_module_reports_tud_init_result);
+    RUN_TEST(&suite, test_usb_event_text_maps_supported_events);
+    RUN_TEST(&suite, test_usb_event_text_returns_null_for_non_text_events);
+    RUN_TEST(&suite, test_usb_hid_task_waits_for_interval);
+    RUN_TEST(&suite, test_usb_hid_task_wakes_host_on_interrupt);
+    RUN_TEST(&suite, test_usb_hid_task_sends_keyboard_report);
+    RUN_TEST(&suite, test_send_hid_report_skips_when_not_ready);
+    test_suite_end(&suite);
     return 0;
 }
