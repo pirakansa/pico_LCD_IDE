@@ -8,5 +8,6 @@ typedef stackevents_dt (*get_new_event_t)(void);
 int initialize_usb_module();
 void usb_device_task();
 void usb_hid_task(get_new_event_t func);
+const char *usb_event_text(stackevents_dt ev);
 
 #endif

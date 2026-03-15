@@ -1,0 +1,189 @@
+version: 1
+tasks:
+  setup:
+    run: |
+      curl -sfL https://raw.githubusercontent.com/alajmo/mani/main/install.sh | sh
+      mani sync -p
+    desc: prepare the workspace
+  check:
+    run: |
+      python3 - <<'PY'
+      from pathlib import Path
+      import sys
+
+      roots = [Path("src"), Path("README.md"), Path("AGENTS.md"), Path("CMakeLists.txt"), Path("vorbere.yaml")]
+      suffixes = {".c", ".h", ".md", ".yaml"}
+      excluded = {
+          Path("src/lcd/res/Lenna.c"),
+      }
+      failures = []
+
+      def iter_paths():
+          for root in roots:
+              if root.is_dir():
+                  for path in sorted(root.rglob("*")):
+                      if path.is_file() and path.suffix in suffixes and path not in excluded:
+                          yield path
+              elif root.is_file() and root not in excluded:
+                  yield root
+
+      for path in iter_paths():
+          data = path.read_bytes()
+          text = data.decode("utf-8")
+          for lineno, line in enumerate(text.splitlines(), 1):
+              if line.endswith((" ", "\t")):
+                  failures.append(f"{path}:{lineno}: trailing whitespace")
+          if data and not data.endswith(b"\n"):
+              failures.append(f"{path}: missing trailing newline")
+
+      if failures:
+          print("\n".join(failures))
+          sys.exit(1)
+      PY
+      mkdir -p build/check
+      cc -std=c11 -Wall -Wextra -Werror -pedantic -DHOST_TEST \
+        -c src/events/events.c \
+        -o build/check/events_check.o
+      cc -std=c11 -Wall -Wextra -Werror -pedantic -DHOST_TEST \
+        -c src/events/tests/test_events.c \
+        -o build/check/test_events_check.o
+      cc -std=c11 -Wall -Wextra -Werror -pedantic -DHOST_TEST \
+        -c src/lcd/lcd.c \
+        -o build/check/lcd_check.o
+      cc -std=c11 -Wall -Wextra -Werror -pedantic -DHOST_TEST \
+        -c src/lcd/lcd_input.c \
+        -o build/check/lcd_input_check.o
+      cc -std=c11 -Wall -Wextra -Werror -pedantic -DHOST_TEST \
+        -c src/lcd/tests/test_lcd.c \
+        -o build/check/test_lcd_check.o
+      cc -std=c11 -Wall -Wextra -Werror -pedantic -DHOST_TEST \
+        -c src/pico/pico.c \
+        -o build/check/pico_check.o
+      cc -std=c11 -Wall -Wextra -Werror -pedantic -DHOST_TEST \
+        -c src/pico/tests/test_pico.c \
+        -o build/check/test_pico_check.o
+      cc -std=c11 -Wall -Wextra -Werror -pedantic -DHOST_TEST -Dmain=firmware_main \
+        -c src/main.c \
+        -o build/check/main_check.o
+      cc -std=c11 -Wall -Wextra -Werror -pedantic -DHOST_TEST \
+        -c src/tests/test_main.c \
+        -o build/check/test_main_check.o
+      cc -std=c11 -Wall -Wextra -Werror -pedantic -DHOST_TEST \
+        -c src/usb/usb.c \
+        -o build/check/usb_check.o
+      cc -std=c11 -Wall -Wextra -Werror -pedantic -DHOST_TEST \
+        -c src/usb/tests/test_usb.c \
+        -o build/check/test_usb_check.o
+    desc: run static checks
+  test:
+    run: |
+      run_host_test() {
+        label="$1"
+        binary="$2"
+        printf '\n[host-test] %s\n' "$label"
+        "$binary"
+      }
+      mkdir -p build/tests
+      cc -std=c11 -Wall -Wextra -pedantic -DHOST_TEST \
+        -o build/tests/test_events \
+        src/events/events.c \
+        src/events/tests/test_events.c
+      cc -std=c11 -Wall -Wextra -pedantic -DHOST_TEST \
+        -o build/tests/test_lcd \
+        src/lcd/lcd.c \
+        src/lcd/lcd_input.c \
+        src/lcd/tests/test_lcd.c
+      cc -std=c11 -Wall -Wextra -pedantic -DHOST_TEST \
+        -o build/tests/test_pico \
+        src/pico/pico.c \
+        src/pico/tests/test_pico.c
+      cc -std=c11 -Wall -Wextra -pedantic -DHOST_TEST -Dmain=firmware_main \
+        -c src/main.c \
+        -o build/tests/main_host.o
+      cc -std=c11 -Wall -Wextra -pedantic -DHOST_TEST \
+        -o build/tests/test_main \
+        build/tests/main_host.o \
+        src/tests/test_main.c
+      cc -std=c11 -Wall -Wextra -pedantic -DHOST_TEST \
+        -o build/tests/test_usb \
+        src/usb/usb.c \
+        src/usb/tests/test_usb.c
+      mkdir -p build/tests/ui-preview
+      cc -std=c11 -Wall -Wextra -pedantic -Wno-overlength-strings \
+        -I src/lcd/preview \
+        -I Pico_code/c/lib/Fonts \
+        -o build/tests/ui_preview \
+        src/lcd/preview/host_preview_support.c \
+        src/lcd/preview/preview_main.c \
+        Pico_code/c/lib/Fonts/font20.c
+      run_host_test "events" ./build/tests/test_events
+      run_host_test "lcd" ./build/tests/test_lcd
+      run_host_test "pico" ./build/tests/test_pico
+      run_host_test "main" ./build/tests/test_main
+      run_host_test "usb" ./build/tests/test_usb
+      printf '\n[host-test] %s\n' "ui-preview"
+      ./build/tests/ui_preview build/tests/ui-preview
+      test -f build/tests/ui-preview/splash.ppm
+      test -f build/tests/ui-preview/menu_selected_3.ppm
+    desc: run tests
+  ui-preview:
+    run: |
+      mkdir -p build/ui-preview
+      cc -std=c11 -Wall -Wextra -pedantic -Wno-overlength-strings \
+        -I src/lcd/preview \
+        -I Pico_code/c/lib/Fonts \
+        -o build/ui-preview/ui_preview \
+        src/lcd/preview/host_preview_support.c \
+        src/lcd/preview/preview_main.c \
+        Pico_code/c/lib/Fonts/font20.c
+      ./build/ui-preview/ui_preview build/ui-preview
+    desc: render LCD previews as PPM images
+  build:
+    run: |
+      mkdir -p build
+      set -- cmake -DPICO_BOARD=pico -S . -B ./build
+      if [ -n "${USB_BTN1_TEXT:-}" ]; then
+        set -- "$@" "-DUSB_BTN1_TEXT=${USB_BTN1_TEXT}"
+      fi
+      if [ -n "${USB_BTN2_TEXT:-}" ]; then
+        set -- "$@" "-DUSB_BTN2_TEXT=${USB_BTN2_TEXT}"
+      fi
+      if [ -n "${USB_BTN3_TEXT:-}" ]; then
+        set -- "$@" "-DUSB_BTN3_TEXT=${USB_BTN3_TEXT}"
+      fi
+      if [ -n "${USB_BTN4_TEXT:-}" ]; then
+        set -- "$@" "-DUSB_BTN4_TEXT=${USB_BTN4_TEXT}"
+      fi
+      "$@"
+      make -C ./build
+    desc: build artifacts
+  build-pico2:
+    run: |
+      mkdir -p build-pico2
+      set -- cmake -DPICO_BOARD=pico2 -S . -B ./build-pico2
+      if [ -n "${USB_BTN1_TEXT:-}" ]; then
+        set -- "$@" "-DUSB_BTN1_TEXT=${USB_BTN1_TEXT}"
+      fi
+      if [ -n "${USB_BTN2_TEXT:-}" ]; then
+        set -- "$@" "-DUSB_BTN2_TEXT=${USB_BTN2_TEXT}"
+      fi
+      if [ -n "${USB_BTN3_TEXT:-}" ]; then
+        set -- "$@" "-DUSB_BTN3_TEXT=${USB_BTN3_TEXT}"
+      fi
+      if [ -n "${USB_BTN4_TEXT:-}" ]; then
+        set -- "$@" "-DUSB_BTN4_TEXT=${USB_BTN4_TEXT}"
+      fi
+      "$@"
+      make -C ./build-pico2
+    desc: build firmware for Raspberry Pi Pico 2
+  clean:
+    run: |
+      if [ -d ./build ]; then
+        make -C ./build clean
+      fi
+      if [ -d ./build-pico2 ]; then
+        make -C ./build-pico2 clean
+      fi
+    desc: clean the workspace
+  ci:
+    depends_on: [setup, check, test, build]

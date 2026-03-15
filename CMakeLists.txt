@@ -31,7 +31,7 @@ add_subdirectory(src/events)
 
 
 # generate an executable file
-add_executable(${NAME} 
+add_executable(${NAME}
     src/main.c
 )
 

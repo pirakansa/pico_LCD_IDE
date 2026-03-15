@@ -1,6 +1,10 @@
 #ifndef _PICO_LCD_SRC_ENVENS_ENVENS_
 #define _PICO_LCD_SRC_ENVENS_ENVENS_
 
+#ifdef HOST_TEST
+#include <stdbool.h>
+#endif
+
 // Define event types for the event queue
 typedef enum {
     STACKEVENTS_NONE = 0,       // No event
@@ -22,6 +26,12 @@ stackevents_dt enqueue(stackevents_dt enq_data);
 // Remove an event from the queue
 stackevents_dt dequeue();
 
+#ifdef HOST_TEST
+int events_debug_head(void);
+int events_debug_tail(void);
+int events_debug_count(void);
+stackevents_dt events_debug_slot(int index);
 #endif
 
+#endif
 

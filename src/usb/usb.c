@@ -1,14 +1,88 @@
 #include "./usb.h"
+
+#ifdef HOST_TEST
+#include <stddef.h>
+#include <stdint.h>
+
+#define BOARD_TUD_RHPORT 0
+#define CFG_TUD_ENDPOINT0_SIZE 64
+#define USB_DT_DEVICE 1
+#define REPORT_ID_KEYBOARD 1
+#define HID_REPORT_ID(id) (id)
+#define TUD_HID_REPORT_DESC_KEYBOARD(...) 0
+#define TUD_CONFIG_DESC_LEN 9
+#define TUD_HID_INOUT_DESC_LEN 9
+#define TUD_CONFIG_DESCRIPTOR(...) 0
+#define TUD_HID_INOUT_DESCRIPTOR(...) 0
+#define KEYBOARD_MODIFIER_LEFTSHIFT 0x02
+
+typedef enum {
+    HID_REPORT_TYPE_INPUT = 1,
+} hid_report_type_t;
+
+typedef struct {
+    uint8_t bLength;
+    uint8_t bDescriptorType;
+    uint16_t bcdUSB;
+    uint8_t bDeviceClass;
+    uint8_t bDeviceSubClass;
+    uint8_t bDeviceProtocol;
+    uint8_t bMaxPacketSize0;
+    uint16_t idVendor;
+    uint16_t idProduct;
+    uint16_t bcdDevice;
+    uint8_t iManufacturer;
+    uint8_t iProduct;
+    uint8_t iSerialNumber;
+    uint8_t bNumConfigurations;
+} tusb_desc_device_t;
+
+bool tud_init(uint8_t rhport);
+void tud_task(void);
+bool tud_hid_ready(void);
+bool tud_suspended(void);
+void tud_remote_wakeup(void);
+void tud_hid_keyboard_report(uint8_t report_id, uint8_t modifier, uint8_t keycode[6]);
+uint32_t board_millis(void);
+void sleep_ms(uint32_t ms);
+#else
 #include "tusb.h"
 #include "dev_hid_composite/usb_descriptors.h"
 #include "dev_lowlevel/usb_common.h"
 #include "bsp/board_api.h"
+#endif
 
+#ifndef USB_BTN1_TEXT
+#define USB_BTN1_TEXT "mail@example.com"
+#endif
+
+#ifndef USB_BTN2_TEXT
+#define USB_BTN2_TEXT "btn2 click!"
+#endif
+
+#ifndef USB_BTN3_TEXT
+#define USB_BTN3_TEXT "btn3 click!"
+#endif
+
+#ifndef USB_BTN4_TEXT
+#define USB_BTN4_TEXT "btn4 click!"
+#endif
+
+#ifdef HOST_TEST
+uint8_t const conv_table[128][2] = {{0, 0}};
+#else
 uint8_t const conv_table[128][2] = {
     HID_ASCII_TO_KEYCODE
 };
+#endif
 
 void usb_hid_type_string(const char *str);
+
+#ifdef HOST_TEST
+uint32_t usb_hid_task_start_ms;
+#else
+static uint32_t usb_hid_task_start_ms;
+#endif
 
 // Descriptors
 tusb_desc_device_t const device_descriptor = {
@@ -52,6 +126,7 @@ uint8_t const * tud_descriptor_device_cb(void)
 }
 
 uint8_t const *tud_descriptor_configuration_cb(uint8_t index) {
+    (void)index;
     return desc_configuration;
 }
 
@@ -60,9 +135,10 @@ enum {
     STRID_MANUFACTURER,
     STRID_PRODUCT,
     STRID_SERIAL,
-};  
+};
 
 uint16_t const *tud_descriptor_string_cb(uint8_t index, uint16_t langid) {
+    (void)langid;
     uint16_t const *ret = NULL;
     switch(index) {
         case STRID_LANGID:
@@ -80,12 +156,23 @@ uint16_t const *tud_descriptor_string_cb(uint8_t index, uint16_t langid) {
 }
 
 uint8_t const *tud_hid_descriptor_report_cb(uint8_t instance) {
+    (void)instance;
     return hid_report_desc;
 }
 uint16_t tud_hid_get_report_cb(uint8_t instance, uint8_t report_id, hid_report_type_t report_type, uint8_t* buffer, uint16_t reqlen) {
+    (void)instance;
+    (void)report_id;
+    (void)report_type;
+    (void)buffer;
+    (void)reqlen;
     return 0;
 }
 void tud_hid_set_report_cb(uint8_t instance, uint8_t report_id, hid_report_type_t report_type, uint8_t const* buffer, uint16_t bufsize) {
+    (void)instance;
+    (void)report_id;
+    (void)report_type;
+    (void)buffer;
+    (void)bufsize;
     return;
 }
 
@@ -99,20 +186,32 @@ void usb_device_task(){
     tud_task();
 }
 
+const char *usb_event_text(stackevents_dt ev) {
+    switch (ev) {
+        case STACKEVENTS_BTN1:
+            return USB_BTN1_TEXT;
+        case STACKEVENTS_BTN2:
+            return USB_BTN2_TEXT;
+        case STACKEVENTS_BTN3:
+            return USB_BTN3_TEXT;
+        case STACKEVENTS_BTN4:
+            return USB_BTN4_TEXT;
+        default:
+            return NULL;
+    }
+}
+
 void send_hid_report(uint8_t report_id, stackevents_dt ev){
+    const char *text;
+
     // skip if hid is not ready yet
     if ( !tud_hid_ready() ) return;
 
     switch(report_id){
         case REPORT_ID_KEYBOARD:
-            if        ( ev == STACKEVENTS_BTN1 ){
-                usb_hid_type_string("mail@example.com");
-            } else if ( ev == STACKEVENTS_BTN2 ){
-                usb_hid_type_string("btn2 click!");
-            } else if ( ev == STACKEVENTS_BTN3 ){
-                usb_hid_type_string("btn3 click!");
-            } else if ( ev == STACKEVENTS_BTN4 ){
-                usb_hid_type_string("btn4 click!");
+            text = usb_event_text(ev);
+            if (text != NULL) {
+                usb_hid_type_string(text);
             }
             break;
         default:
@@ -125,10 +224,9 @@ void send_hid_report(uint8_t report_id, stackevents_dt ev){
 void usb_hid_task(get_new_event_t get_new_event){
     // Poll every 10ms
     const uint32_t interval_ms = 10;
-    static uint32_t start_ms = 0;
 
-    if ( board_millis() - start_ms < interval_ms) return; // not enough time
-    start_ms += interval_ms;
+    if ( board_millis() - usb_hid_task_start_ms < interval_ms) return; // not enough time
+    usb_hid_task_start_ms += interval_ms;
 
     stackevents_dt ev = get_new_event();
 
@@ -147,7 +245,7 @@ void usb_hid_type_string(const char *str) {
     while (*str) {
         uint8_t keycode[6] = { 0 };
         uint8_t modifier   = 0;
-        char c = *str;
+        unsigned char c = (unsigned char)*str;
         // https://qiita.com/nak435/items/0ed2e371d43afb17ec72
         if ( conv_table[c][0] )
             modifier = KEYBOARD_MODIFIER_LEFTSHIFT;
@@ -163,4 +261,3 @@ void usb_hid_type_string(const char *str) {
         str++;
     }
 }
-

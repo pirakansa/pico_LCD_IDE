@@ -58,7 +58,7 @@ int draw_text_menu_screen(UWORD *Image){
         Paint_DrawString_EN(
             (MENU_CIRCLE_SIZE + MENU_CIRCLE_MARGIN_SIZE)*2,
             (MENU_CIRCLE_MARGIN_SIZE + 5) + (MENU_CIRCLE_SIZE*2 + MENU_CIRCLE_MARGIN_SIZE*2)*i,
-            menu_lists[i], &Font20, WHITE, GREEN); // BRED, WHITE); 
+            menu_lists[i], &Font20, WHITE, GREEN); // BRED, WHITE);
     }
     LCD_1IN3_Display(Image);
 
@@ -75,5 +75,4 @@ int draw_menu_screen(UWORD *Image){
 
 
 #endif
-
 

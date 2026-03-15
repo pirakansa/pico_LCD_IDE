@@ -1,36 +1,79 @@
 #include <stdio.h>
+#ifdef HOST_TEST
+#include <stdbool.h>
+#define bi_decl(x) ((void)0)
+#define bi_program_description(x) (x)
+#else
 #include "pico/stdlib.h"
 #include "pico/binary_info.h"
+#endif
 
 #include "pico/pico.h"
 #include "lcd/lcd.h"
 #include "usb/usb.h"
 #include "events/events.h"
 
+typedef enum {
+    BOARD_INIT_OK = 0,
+    BOARD_INIT_EVENT_ERROR = -1,
+    BOARD_INIT_PICO_ERROR = -2,
+    BOARD_INIT_LCD_ERROR = -3,
+    BOARD_INIT_USB_ERROR = -4,
+} board_init_result_t;
+
+board_init_result_t board_init_step_result(int event_rc, int pico_rc, int lcd_rc, int usb_rc) {
+    if (event_rc != 0) {
+        return BOARD_INIT_EVENT_ERROR;
+    }
+
+    if (pico_rc != 0) {
+        return BOARD_INIT_PICO_ERROR;
+    }
+
+    if (lcd_rc != 0) {
+        return BOARD_INIT_LCD_ERROR;
+    }
+
+    if (usb_rc != 0) {
+        return BOARD_INIT_USB_ERROR;
+    }
+
+    return BOARD_INIT_OK;
+}
+
 
 // Function to initialize the board and declare program metadata
 int initialize_board(){
+    int event_rc;
+    int pico_rc;
+    int lcd_rc;
+    int usb_rc;
+
     // Declare program description for binary info
     bi_decl(bi_program_description("https://github.com/pirakansa"));
 
-    if(initialize_ev_data()!=0){
-        return -1;
+    event_rc = initialize_ev_data();
+    if (event_rc != 0) {
+        return board_init_step_result(event_rc, 0, 0, 0);
     }
 
     // Initialize Pico module and check for errors
-    if(initialize_pico_module()!=0){
-        return -1;
+    pico_rc = initialize_pico_module();
+    if (pico_rc != 0) {
+        return board_init_step_result(0, pico_rc, 0, 0);
     }
 
-    if(initialize_lcd_module()!=0){
-        return -1;
+    lcd_rc = initialize_lcd_module();
+    if (lcd_rc != 0) {
+        return board_init_step_result(0, 0, lcd_rc, 0);
     }
 
-    if(initialize_usb_module()!=0){
-        return -1;
+    usb_rc = initialize_usb_module();
+    if (usb_rc != 0) {
+        return board_init_step_result(0, 0, 0, usb_rc);
     }
 
-    return 0;
+    return board_init_step_result(0, 0, 0, 0);
 }
 
 
@@ -49,6 +92,7 @@ stackevents_dt dequeue_events_callback(void){
 
 int main ()
 {
+#ifndef HOST_TEST
      // Initialize the board and exit if initialization fails
      if(initialize_board()!=0){
         return 0;
@@ -68,6 +112,7 @@ int main ()
     }
 
     return 0;
+#else
+    return initialize_board();
+#endif
 }
-
-
