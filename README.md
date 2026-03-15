@@ -23,6 +23,8 @@ This project demonstrates how to use the Raspberry Pi Pico microcontroller with 
 - [Module Overview](docs/module-overview.md)
 - [Startup Flow](docs/user-guides/startup-flow.md)
 - [USB HID Reference](docs/reference/usb-hid.md)
+- [LCD Input Reference](docs/reference/lcd-input.md)
+- [Event Queue Reference](docs/reference/events-queue.md)
 
 
 ## Getting Started

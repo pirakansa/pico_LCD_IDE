@@ -53,6 +53,8 @@ Primary files: `src/events/events.h`, `src/events/events.c`
 
 `events` provides a mutex-protected FIFO queue for cross-module event exchange.
 
+Detailed queue semantics, synchronization behavior, and return contracts are documented in `docs/reference/events-queue.md`.
+
 ### Event Types
 
 The current event enum is:
@@ -113,6 +115,8 @@ Because the error signal loops forever, it is a terminal state for the current f
 Primary files: `src/lcd/lcd.h`, `src/lcd/lcd.c`
 
 `lcd` is responsible for display initialization, basic screen drawing, and GPIO button event handling for the Pico-LCD-1.3 hardware.
+
+Detailed input and callback behavior are documented in `docs/reference/lcd-input.md`.
 
 Current responsibilities:
 
