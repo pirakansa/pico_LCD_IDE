@@ -60,7 +60,7 @@ enum {
     STRID_MANUFACTURER,
     STRID_PRODUCT,
     STRID_SERIAL,
-};  
+};
 
 uint16_t const *tud_descriptor_string_cb(uint8_t index, uint16_t langid) {
     uint16_t const *ret = NULL;
@@ -163,4 +163,3 @@ void usb_hid_type_string(const char *str) {
         str++;
     }
 }
-

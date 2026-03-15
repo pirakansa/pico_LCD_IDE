@@ -34,7 +34,7 @@ This project demonstrates how to use the Raspberry Pi Pico microcontroller with 
    ```
 
    > Note: If you forgot to use the `--recurse-submodules` option when cloning, you can manually initialize and update the submodules with the following command:
-   > 
+   >
    > ```sh
    > $ git submodule update --init --recursive
    > ```
@@ -61,4 +61,3 @@ The resulting `.uf2` file will be located in the `build` directory.
 
 1. Connect your Raspberry Pi Pico to your computer while holding the BOOTSEL button.
 2. Copy the generated `.uf2` file to the Pico's storage.
-

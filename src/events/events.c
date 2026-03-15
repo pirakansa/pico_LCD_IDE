@@ -48,7 +48,7 @@ stackevents_dt enqueue(stackevents_dt enq_data) {
         printf("Error: Queue overflow.\n");
         return STACKEVENTS_FULL;
     }
-    
+
     stackevents[queue_tail] = enq_data;
     queue_tail = (queue_tail + 1) % QUEUE_SIZE;
     queue_cnt++;

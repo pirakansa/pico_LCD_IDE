@@ -6,7 +6,53 @@ tasks:
       mani sync -p
     desc: prepare the workspace
   check:
-    run: "echo define static checks command"
+    run: |
+      python3 - <<'PY'
+      from pathlib import Path
+      import sys
+
+      roots = [Path("src"), Path("README.md"), Path("AGENTS.md"), Path("CMakeLists.txt"), Path("vorbere.yaml")]
+      suffixes = {".c", ".h", ".md", ".yaml"}
+      excluded = {
+          Path("src/lcd/res/Lenna.c"),
+      }
+      failures = []
+
+      def iter_paths():
+          for root in roots:
+              if root.is_dir():
+                  for path in sorted(root.rglob("*")):
+                      if path.is_file() and path.suffix in suffixes and path not in excluded:
+                          yield path
+              elif root.is_file() and root not in excluded:
+                  yield root
+
+      for path in iter_paths():
+          data = path.read_bytes()
+          text = data.decode("utf-8")
+          for lineno, line in enumerate(text.splitlines(), 1):
+              if line.endswith((" ", "\t")):
+                  failures.append(f"{path}:{lineno}: trailing whitespace")
+          if data and not data.endswith(b"\n"):
+              failures.append(f"{path}: missing trailing newline")
+
+      if failures:
+          print("\n".join(failures))
+          sys.exit(1)
+      PY
+      mkdir -p build/check
+      cc -std=c11 -Wall -Wextra -Werror -pedantic -DHOST_TEST \
+        -c src/events/events.c \
+        -o build/check/events_check.o
+      cc -std=c11 -Wall -Wextra -Werror -pedantic -DHOST_TEST \
+        -c src/events/tests/test_events.c \
+        -o build/check/test_events_check.o
+      cc -std=c11 -Wall -Wextra -Werror -pedantic -DHOST_TEST -Dmain=firmware_main \
+        -c src/main.c \
+        -o build/check/main_check.o
+      cc -std=c11 -Wall -Wextra -Werror -pedantic -DHOST_TEST \
+        -c src/tests/test_main.c \
+        -o build/check/test_main_check.o
     desc: run static checks
   test:
     run: |

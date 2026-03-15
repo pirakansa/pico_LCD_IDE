@@ -34,8 +34,8 @@ int initialize_liblcd(){
     SET_Infrared_PIN(GPIO_KEY_B);
     SET_Infrared_PIN(GPIO_KEY_X);
     SET_Infrared_PIN(GPIO_KEY_Y);
-		 
-	SET_Infrared_PIN(GPIO_KEY_UP);
+
+    SET_Infrared_PIN(GPIO_KEY_UP);
     SET_Infrared_PIN(GPIO_KEY_DOWN);
     SET_Infrared_PIN(GPIO_KEY_LEFT);
     SET_Infrared_PIN(GPIO_KEY_RIGHT);
@@ -149,7 +149,7 @@ int initialize_lcd_draw(lcd_callback_t callback) {
 
     draw_splash_screen(BlackImage);
     DEV_Delay_ms(GPIO_KEY_UX_PUSH_WAIT);
-    
+
     select_menu_idx = 0;
     draw_menu_screen(BlackImage);
     initialize_lcd_event();
