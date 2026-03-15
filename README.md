@@ -60,6 +60,14 @@ $ vorbere run build
 
 The resulting `.uf2` file will be located in the `build` directory.
 
+To build firmware for Raspberry Pi Pico 2 instead, run:
+
+```sh
+$ vorbere run build-pico2
+```
+
+The resulting `.uf2` file will be located in the `build-pico2` directory.
+
 
 ## Flashing the Pico
 

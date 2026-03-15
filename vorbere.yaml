@@ -120,9 +120,20 @@ tasks:
       cmake -DPICO_BOARD=pico -S . -B ./build
       make -C ./build
     desc: build artifacts
+  build-pico2:
+    run: |
+      mkdir -p build-pico2
+      cmake -DPICO_BOARD=pico2 -S . -B ./build-pico2
+      make -C ./build-pico2
+    desc: build firmware for Raspberry Pi Pico 2
   clean:
     run: |
-      make -C ./build clean
+      if [ -d ./build ]; then
+        make -C ./build clean
+      fi
+      if [ -d ./build-pico2 ]; then
+        make -C ./build-pico2 clean
+      fi
     desc: clean the workspace
   ci:
     depends_on: [setup, check, test, build]
