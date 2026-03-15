@@ -7,6 +7,7 @@
 #include "../usb/usb.h"
 
 int initialize_board(void);
+int firmware_main(void);
 void enqueue_events_callback(stackevents_dt ev);
 stackevents_dt dequeue_events_callback(void);
 
@@ -149,6 +150,39 @@ static void test_initialize_board_stops_on_error(void) {
     assert_int("usb init calls", 0, usb_init_calls);
 }
 
+static void test_initialize_board_stops_on_event_error(void) {
+    reset_state();
+    event_init_rc = -1;
+
+    assert_int("initialize_board failure", -1, initialize_board());
+    assert_int("event init calls", 1, event_init_calls);
+    assert_int("pico init calls", 0, pico_init_calls);
+    assert_int("lcd init calls", 0, lcd_init_calls);
+    assert_int("usb init calls", 0, usb_init_calls);
+}
+
+static void test_initialize_board_stops_on_pico_error(void) {
+    reset_state();
+    pico_init_rc = -1;
+
+    assert_int("initialize_board failure", -1, initialize_board());
+    assert_int("event init calls", 1, event_init_calls);
+    assert_int("pico init calls", 1, pico_init_calls);
+    assert_int("lcd init calls", 0, lcd_init_calls);
+    assert_int("usb init calls", 0, usb_init_calls);
+}
+
+static void test_initialize_board_stops_on_usb_error(void) {
+    reset_state();
+    usb_init_rc = -1;
+
+    assert_int("initialize_board failure", -1, initialize_board());
+    assert_int("event init calls", 1, event_init_calls);
+    assert_int("pico init calls", 1, pico_init_calls);
+    assert_int("lcd init calls", 1, lcd_init_calls);
+    assert_int("usb init calls", 1, usb_init_calls);
+}
+
 static void test_enqueue_callback_error_signal(void) {
     reset_state();
     enqueue_result = STACKEVENTS_FULL;
@@ -187,13 +221,28 @@ static void test_dequeue_callback_queue_fallback(void) {
     assert_int("dequeue calls", 1, dequeue_calls);
 }
 
+static void test_host_main_returns_initialize_board_result(void) {
+    reset_state();
+    usb_init_rc = -1;
+
+    assert_int("firmware main result", -1, firmware_main());
+    assert_int("event init calls", 1, event_init_calls);
+    assert_int("pico init calls", 1, pico_init_calls);
+    assert_int("lcd init calls", 1, lcd_init_calls);
+    assert_int("usb init calls", 1, usb_init_calls);
+}
+
 int main(void) {
     test_initialize_board_success();
     test_initialize_board_stops_on_error();
+    test_initialize_board_stops_on_event_error();
+    test_initialize_board_stops_on_pico_error();
+    test_initialize_board_stops_on_usb_error();
     test_enqueue_callback_error_signal();
     test_enqueue_callback_no_error();
     test_dequeue_callback_interrupt_priority();
     test_dequeue_callback_queue_fallback();
+    test_host_main_returns_initialize_board_result();
 
     printf("main tests passed\n");
     return 0;
