@@ -29,17 +29,14 @@ This project demonstrates how to use the Raspberry Pi Pico microcontroller with 
 
 1. Clone this repository:
    ```sh
-   $ git clone --recurse-submodules https://github.com/pirakansa/pico_LCD_IDE.git
+   $ git clone https://github.com/pirakansa/pico_LCD_IDE.git
    $ cd pico_LCD_IDE
    ```
 
-   > Note: If you forgot to use the `--recurse-submodules` option when cloning, you can manually initialize and update the submodules with the following command:
-   >
-   > ```sh
-   > $ git submodule update --init --recursive
-   > ```
-
 2. Set up the development environment using the provided `.devcontainer` configuration (if applicable).
+   ```sh
+   $ vorbere run setup
+   ```
 
 3. Build the project.
 
@@ -49,9 +46,7 @@ This project demonstrates how to use the Raspberry Pi Pico microcontroller with 
 Follow these steps to build the project and generate a `.uf2` file for flashing onto the Raspberry Pi Pico:
 
 ```sh
-$ mkdir -p build
-$ cmake -DPICO_BOARD=pico -S . -B ./build
-$ make -C ./build
+$ vorbere run build
 ```
 
 The resulting `.uf2` file will be located in the `build` directory.
