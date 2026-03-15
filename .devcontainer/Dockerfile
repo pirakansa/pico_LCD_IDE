@@ -25,7 +25,6 @@ RUN install --owner=${CONTAINER_USERNAME} --directory /work && \
 
 USER ${CONTAINER_USERNAME}
 
-RUN curl -fsSL https://raw.githubusercontent.com/pirakansa/vorbere/main/install.sh | bash && \
-    curl -sfL https://raw.githubusercontent.com/alajmo/mani/main/install.sh | sh
+RUN curl -fsSL https://raw.githubusercontent.com/pirakansa/vorbere/main/install.sh | bash
 
 WORKDIR /work
