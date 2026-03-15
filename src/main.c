@@ -1,6 +1,12 @@
 #include <stdio.h>
+#ifdef HOST_TEST
+#include <stdbool.h>
+#define bi_decl(x) ((void)0)
+#define bi_program_description(x) (x)
+#else
 #include "pico/stdlib.h"
 #include "pico/binary_info.h"
+#endif
 
 #include "pico/pico.h"
 #include "lcd/lcd.h"
@@ -49,6 +55,7 @@ stackevents_dt dequeue_events_callback(void){
 
 int main ()
 {
+#ifndef HOST_TEST
      // Initialize the board and exit if initialization fails
      if(initialize_board()!=0){
         return 0;
@@ -68,6 +75,8 @@ int main ()
     }
 
     return 0;
+#else
+    return initialize_board();
+#endif
 }
-
 

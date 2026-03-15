@@ -9,7 +9,21 @@ tasks:
     run: "echo define static checks command"
     desc: run static checks
   test:
-    run: "echo define test command"
+    run: |
+      mkdir -p build/tests
+      cc -std=c11 -Wall -Wextra -pedantic -DHOST_TEST \
+        -o build/tests/test_events \
+        src/events/events.c \
+        src/events/tests/test_events.c
+      cc -std=c11 -Wall -Wextra -pedantic -DHOST_TEST -Dmain=firmware_main \
+        -c src/main.c \
+        -o build/tests/main_host.o
+      cc -std=c11 -Wall -Wextra -pedantic -DHOST_TEST \
+        -o build/tests/test_main \
+        build/tests/main_host.o \
+        src/tests/test_main.c
+      ./build/tests/test_events
+      ./build/tests/test_main
     desc: run tests
   build:
     run: |

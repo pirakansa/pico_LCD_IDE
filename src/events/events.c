@@ -1,11 +1,28 @@
 #include <stdio.h>
-#include "pico/stdlib.h"
 #include "./events.h"
+
+#ifdef HOST_TEST
+typedef struct {
+    int unused;
+} mutex_t;
+
+static mutex_t events_queue_mutex;
+
+static void mutex_enter_blocking(mutex_t *mutex) {
+    (void)mutex;
+}
+
+static void mutex_exit(mutex_t *mutex) {
+    (void)mutex;
+}
+#else
+#include "pico/stdlib.h"
 #include "pico/mutex.h"
 
-#define QUEUE_SIZE 10
-
 auto_init_mutex(events_queue_mutex);
+#endif
+
+#define QUEUE_SIZE 10
 
 stackevents_dt stackevents[QUEUE_SIZE] = {STACKEVENTS_NONE};
 volatile int queue_head;
@@ -32,7 +49,8 @@ stackevents_dt enqueue(stackevents_dt enq_data) {
         return STACKEVENTS_FULL;
     }
     
-    stackevents[(queue_head + queue_cnt) % QUEUE_SIZE] = enq_data;
+    stackevents[queue_tail] = enq_data;
+    queue_tail = (queue_tail + 1) % QUEUE_SIZE;
     queue_cnt++;
 
     mutex_exit(&events_queue_mutex);
@@ -49,9 +67,10 @@ stackevents_dt dequeue() {
     }
 
     stackevents_dt deq_data = stackevents[queue_head];
+    stackevents[queue_head] = STACKEVENTS_NONE;
+    queue_head = (queue_head + 1) % QUEUE_SIZE;
     queue_cnt--;
 
     mutex_exit(&events_queue_mutex);
     return deq_data;
 }
-
