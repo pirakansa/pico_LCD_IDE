@@ -1,0 +1,22 @@
+projects:
+  pico_LCD_IDE:
+    path: .
+    url: git@github.com:pirakansa/pico_LCD_IDE.git
+  
+  Pico_code:
+    desc: Pico_code
+    path: Pico_code
+    clone: git clone --depth 1 --branch patch-1 https://github.com/pirakansa/Pico_code.git Pico_code
+    url: https://github.com/pirakansa/Pico_code.git
+
+  pico-examples:
+    desc: pico-examples
+    path: pico-examples
+    clone: git clone --depth 1 --branch sdk-2.1.0 --recurse-submodules https://github.com/raspberrypi/pico-examples.git pico-examples
+    url: https://github.com/raspberrypi/pico-examples.git
+  
+  pico-sdk:
+    desc: pico-sdk
+    path: pico-sdk
+    clone: git clone --depth 1 --branch 2.1.0 --recurse-submodules https://github.com/raspberrypi/pico-sdk.git pico-sdk
+    url: https://github.com/raspberrypi/pico-sdk
