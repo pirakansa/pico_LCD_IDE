@@ -178,12 +178,7 @@ tasks:
     desc: build firmware for Raspberry Pi Pico 2
   clean:
     run: |
-      if [ -d ./build ]; then
-        make -C ./build clean
-      fi
-      if [ -d ./build-pico2 ]; then
-        make -C ./build-pico2 clean
-      fi
+      rm -rf ./build ./build-pico2
     desc: clean the workspace
   ci:
     depends_on: [setup, check, test, build]
