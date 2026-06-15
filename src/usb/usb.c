@@ -8,6 +8,7 @@
 #define CFG_TUD_ENDPOINT0_SIZE 64
 #define USB_DT_DEVICE 1
 #define REPORT_ID_KEYBOARD 1
+#define USB_REPORT_ID_MENU_ID 5
 #define HID_REPORT_ID(id) (id)
 #define TUD_HID_REPORT_DESC_KEYBOARD(...) 0
 #define TUD_CONFIG_DESC_LEN 9
@@ -18,6 +19,7 @@
 
 typedef enum {
     HID_REPORT_TYPE_INPUT = 1,
+    HID_REPORT_TYPE_FEATURE = 3,
 } hid_report_type_t;
 
 typedef struct {
@@ -52,6 +54,10 @@ void sleep_ms(uint32_t ms);
 #include "bsp/board_api.h"
 #endif
 
+#ifndef USB_REPORT_ID_MENU_ID
+#define USB_REPORT_ID_MENU_ID 5
+#endif
+
 #ifndef USB_BTN1_TEXT
 #define USB_BTN1_TEXT "mail@example.com"
 #endif
@@ -77,6 +83,9 @@ uint8_t const conv_table[128][2] = {
 #endif
 
 void usb_hid_type_string(const char *str);
+static uint16_t usb_current_menu_id_report(uint8_t *buffer, uint16_t reqlen);
+
+static usb_menu_id_provider_t menu_id_provider;
 
 #ifdef HOST_TEST
 uint32_t usb_hid_task_start_ms;
@@ -103,7 +112,18 @@ tusb_desc_device_t const device_descriptor = {
 };
 
 const uint8_t hid_report_desc[] = {
-    TUD_HID_REPORT_DESC_KEYBOARD( HID_REPORT_ID(REPORT_ID_KEYBOARD ))
+    TUD_HID_REPORT_DESC_KEYBOARD( HID_REPORT_ID(REPORT_ID_KEYBOARD) ),
+    0x06, 0x00, 0xff,                   // Usage Page (Vendor Defined)
+    0x09, 0x01,                         // Usage (Vendor Usage 1)
+    0xa1, 0x01,                         // Collection (Application)
+    0x85, USB_REPORT_ID_MENU_ID,        //   Report ID
+    0x09, 0x02,                         //   Usage (Vendor Usage 2)
+    0x15, 0x00,                         //   Logical Minimum (0)
+    0x26, 0xff, 0x00,                   //   Logical Maximum (255)
+    0x75, 0x08,                         //   Report Size (8)
+    0x95, 0x04,                         //   Report Count (4)
+    0xb1, 0x02,                         //   Feature (Data, Variable, Absolute)
+    0xc0                                // End Collection
 };
 
 const uint8_t desc_configuration[] = {
@@ -161,10 +181,10 @@ uint8_t const *tud_hid_descriptor_report_cb(uint8_t instance) {
 }
 uint16_t tud_hid_get_report_cb(uint8_t instance, uint8_t report_id, hid_report_type_t report_type, uint8_t* buffer, uint16_t reqlen) {
     (void)instance;
-    (void)report_id;
-    (void)report_type;
-    (void)buffer;
-    (void)reqlen;
+    if (report_type == HID_REPORT_TYPE_FEATURE && report_id == USB_REPORT_ID_MENU_ID) {
+        return usb_current_menu_id_report(buffer, reqlen);
+    }
+
     return 0;
 }
 void tud_hid_set_report_cb(uint8_t instance, uint8_t report_id, hid_report_type_t report_type, uint8_t const* buffer, uint16_t bufsize) {
@@ -179,6 +199,10 @@ void tud_hid_set_report_cb(uint8_t instance, uint8_t report_id, hid_report_type_
 
 int initialize_usb_module(){
     return (tud_init(BOARD_TUD_RHPORT) == true) ? 0 : -1;
+}
+
+void usb_set_menu_id_provider(usb_menu_id_provider_t provider) {
+    menu_id_provider = provider;
 }
 
 void usb_device_task(){
@@ -260,4 +284,20 @@ void usb_hid_type_string(const char *str) {
 
         str++;
     }
+}
+
+static uint16_t usb_current_menu_id_report(uint8_t *buffer, uint16_t reqlen) {
+    if (buffer == NULL || reqlen < 4) {
+        return 0;
+    }
+
+    int menu_id = (menu_id_provider != NULL) ? menu_id_provider() : 0;
+    uint32_t report_value = (menu_id < 0) ? 0u : (uint32_t)menu_id;
+
+    buffer[0] = (uint8_t)(report_value & 0xffu);
+    buffer[1] = (uint8_t)((report_value >> 8) & 0xffu);
+    buffer[2] = (uint8_t)((report_value >> 16) & 0xffu);
+    buffer[3] = (uint8_t)((report_value >> 24) & 0xffu);
+
+    return 4;
 }

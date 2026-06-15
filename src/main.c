@@ -105,6 +105,7 @@ int main ()
     if(initialize_lcd_draw(enqueue_events_callback)!=0){
         set_err_led_signal(2);
     }
+    usb_set_menu_id_provider(lcd_current_menu_index);
 
     while (true) {
         usb_device_task();

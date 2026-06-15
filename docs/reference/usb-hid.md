@@ -10,9 +10,11 @@ flowchart LR
 	BOOTSEL[STACKEVENTS_INTERRUPT] --> USB
 	USB --> REPORT[send_hid_report]
 	REPORT --> HOST[Host keyboard input]
+	HOST --> FEATURE[HID feature report request]
+	FEATURE --> USB
 ```
 
-The firmware currently exposes a TinyUSB-based HID keyboard device.
+The firmware exposes a TinyUSB-based HID keyboard device with one vendor-defined Feature report for reading the current menu selection.
 Its behavior is event-driven and tied to the shared event queue managed by the rest of the firmware.
 
 ## Public Interface
@@ -22,9 +24,11 @@ Declared in `src/usb/usb.h`:
 - `int initialize_usb_module();`
 - `void usb_device_task();`
 - `void usb_hid_task(get_new_event_t func);`
+- `void usb_set_menu_id_provider(usb_menu_id_provider_t provider);`
 - `const char *usb_event_text(stackevents_dt ev);`
 
 `get_new_event_t` is a function pointer type that returns one `stackevents_dt` value.
+`usb_menu_id_provider_t` is a function pointer type that returns the current selected menu index.
 
 ## Initialization
 
@@ -62,11 +66,36 @@ Current string descriptor behavior:
 
 ## HID Report Model
 
-The report descriptor is currently a keyboard-only descriptor:
+The report descriptor contains two reports:
 
-- `TUD_HID_REPORT_DESC_KEYBOARD(HID_REPORT_ID(REPORT_ID_KEYBOARD))`
+| Report ID | Type | Purpose |
+| --- | --- | --- |
+| `1` | Input | keyboard report generated from button events |
+| `5` | Feature | vendor-defined current menu id report |
 
 The configuration descriptor exposes one HID IN/OUT interface.
+
+### Current Menu Feature Report
+
+The vendor-defined Feature report uses report ID `5`.
+It returns the currently selected menu index as a 4-byte unsigned little-endian value.
+
+TinyUSB calls `tud_hid_get_report_cb()` with the report ID separated from the payload buffer.
+For report ID `5`, the callback writes 4 payload bytes and returns `4`.
+If no provider has been registered, the reported menu id is `0`.
+Negative provider values are clamped to `0`.
+
+On Linux `hidraw`, callers can read this value with `HIDIOCGFEATURE`.
+The userspace buffer includes the report ID in byte `0`, followed by the 4-byte payload:
+
+```c
+uint8_t report[5] = {5};
+ioctl(fd, HIDIOCGFEATURE(sizeof(report)), report);
+uint32_t menu_id = (uint32_t)report[1]
+    | ((uint32_t)report[2] << 8)
+    | ((uint32_t)report[3] << 16)
+    | ((uint32_t)report[4] << 24);
+```
 
 ## Runtime Tasks
 
@@ -178,8 +207,8 @@ This means each character is emitted as a press-and-release pair.
 ## Constraints and Current Limitations
 
 - Output strings are compile-time constants, but they can be overridden per build.
-- Only keyboard HID behavior is implemented.
-- `tud_hid_get_report_cb()` returns `0` and does not provide custom report data.
+- Host-readable HID state is limited to the current menu id Feature report.
+- `tud_hid_get_report_cb()` only provides data for the current menu id Feature report.
 - `tud_hid_set_report_cb()` ignores host-sent reports.
 - There is no user-configurable keymap layer in the current firmware.
 
@@ -188,10 +217,12 @@ This means each character is emitted as a press-and-release pair.
 The USB layer expects the caller to:
 
 - initialize the shared event system before USB polling begins
+- register the selected menu provider with `usb_set_menu_id_provider()` before host Feature report reads are expected
 - call `usb_device_task()` repeatedly
 - call `usb_hid_task()` repeatedly with a valid event supplier callback
 
-The USB layer does not own the event queue. It only consumes one event at a time through the supplied callback.
+The USB layer does not own the event queue or LCD menu state.
+It consumes one event at a time through the supplied callback and reads menu state through the registered provider callback.
 
 ## Related Documents
 

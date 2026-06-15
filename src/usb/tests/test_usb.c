@@ -25,6 +25,8 @@ extern uint32_t usb_hid_task_start_ms;
 
 enum {
     REPORT_ID_KEYBOARD = 1,
+    USB_REPORT_ID_MENU_ID = 5,
+    HID_REPORT_TYPE_FEATURE = 3,
 };
 
 static bool tud_init_rc = true;
@@ -37,7 +39,10 @@ static int keyboard_report_calls;
 static int last_modifier = -1;
 static int last_keycode = -1;
 static int event_source_calls;
+static int fake_menu_id;
 static stackevents_dt next_event = STACKEVENTS_NONE;
+
+uint16_t tud_hid_get_report_cb(uint8_t instance, uint8_t report_id, int report_type, uint8_t* buffer, uint16_t reqlen);
 
 static void reset_state(void) {
     tud_init_rc = true;
@@ -50,8 +55,10 @@ static void reset_state(void) {
     last_modifier = -1;
     last_keycode = -1;
     event_source_calls = 0;
+    fake_menu_id = 0;
     next_event = STACKEVENTS_NONE;
     usb_hid_task_start_ms = 0;
+    usb_set_menu_id_provider(NULL);
 }
 
 bool tud_init(uint8_t rhport) {
@@ -93,6 +100,10 @@ void sleep_ms(uint32_t ms) {
 static stackevents_dt get_event(void) {
     event_source_calls++;
     return next_event;
+}
+
+static int get_menu_id(void) {
+    return fake_menu_id;
 }
 
 static void test_initialize_usb_module_reports_tud_init_result(test_suite_t *suite) {
@@ -166,6 +177,32 @@ static void test_send_hid_report_skips_when_not_ready(test_suite_t *suite) {
     ASSERT_INT(suite, "reports skipped", 0, keyboard_report_calls);
 }
 
+static void test_hid_feature_report_returns_current_menu_id(test_suite_t *suite) {
+    reset_state();
+    uint8_t buffer[4] = {0};
+
+    fake_menu_id = 3;
+    usb_set_menu_id_provider(get_menu_id);
+    uint16_t len = tud_hid_get_report_cb(0, USB_REPORT_ID_MENU_ID, HID_REPORT_TYPE_FEATURE, buffer, sizeof(buffer));
+
+    ASSERT_INT(suite, "feature report length", 4, len);
+    ASSERT_INT(suite, "menu id low byte", 3, buffer[0]);
+    ASSERT_INT(suite, "menu id byte 1", 0, buffer[1]);
+    ASSERT_INT(suite, "menu id byte 2", 0, buffer[2]);
+    ASSERT_INT(suite, "menu id byte 3", 0, buffer[3]);
+}
+
+static void test_hid_feature_report_rejects_short_buffer(test_suite_t *suite) {
+    reset_state();
+    uint8_t buffer[3] = {0};
+
+    fake_menu_id = 1;
+    usb_set_menu_id_provider(get_menu_id);
+    uint16_t len = tud_hid_get_report_cb(0, USB_REPORT_ID_MENU_ID, HID_REPORT_TYPE_FEATURE, buffer, sizeof(buffer));
+
+    ASSERT_INT(suite, "short report length", 0, len);
+}
+
 int main(void) {
     test_suite_t suite;
 
@@ -177,6 +214,8 @@ int main(void) {
     RUN_TEST(&suite, test_usb_hid_task_wakes_host_on_interrupt);
     RUN_TEST(&suite, test_usb_hid_task_sends_keyboard_report);
     RUN_TEST(&suite, test_send_hid_report_skips_when_not_ready);
+    RUN_TEST(&suite, test_hid_feature_report_returns_current_menu_id);
+    RUN_TEST(&suite, test_hid_feature_report_rejects_short_buffer);
     test_suite_end(&suite);
     return 0;
 }

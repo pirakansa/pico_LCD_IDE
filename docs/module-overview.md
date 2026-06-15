@@ -191,7 +191,7 @@ Notes about the present implementation:
 
 Primary files: `src/usb/usb.h`, `src/usb/usb.c`
 
-`usb` implements a TinyUSB device that exposes a HID keyboard interface.
+`usb` implements a TinyUSB device that exposes HID keyboard output and a vendor-defined Feature report for reading the selected menu id.
 
 Current responsibilities:
 
@@ -200,6 +200,7 @@ Current responsibilities:
 - Run the TinyUSB device task.
 - Poll for new events on a fixed interval.
 - Convert button events into keyboard output sent to the host.
+- Return the current menu selection to host Feature report requests.
 
 Detailed USB behavior, descriptors, polling, and event-to-output mapping are documented in `docs/reference/usb-hid.md`.
 
