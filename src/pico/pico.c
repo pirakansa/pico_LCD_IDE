@@ -6,7 +6,12 @@
 #define PICO_OK 0
 #else
 #include "pico/stdlib.h"
+
+#if defined(RASPBERRYPI_PICO2)
+#include "boards/pico2.h"
+#elif defined(RASPBERRYPI_PICO)
 #include "boards/pico.h"
+#endif
 
 #ifdef PICO_CYW43_SUPPORTED
 #include "pico/cyw43_arch.h"
@@ -54,11 +59,11 @@ bool __no_inline_not_in_flash_func(get_bootsel_button_state)() {
 
     // The HI GPIO registers in SIO can observe and control the 6 QSPI pins.
     // Note the button pulls the pin *low* when pressed.
-// #if PICO_RP2040
+#if PICO_RP2040
     #define CS_BIT (1u << 1)
-// #else
-    // #define CS_BIT SIO_GPIO_HI_IN_QSPI_CSN_BITS
-// #endif
+#else
+    #define CS_BIT SIO_GPIO_HI_IN_QSPI_CSN_BITS
+#endif
     bool button_state = !(sio_hw->gpio_hi_in & CS_BIT);
 
     // Need to restore the state of chip select, else we are going to have a
@@ -165,4 +170,3 @@ int host_pico_led_init_rc;
 bool host_bootsel_button_state;
 int host_last_err_led_count;
 #endif
-
