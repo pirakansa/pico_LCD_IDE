@@ -144,25 +144,6 @@ Rules:
 ## Release Process
 
 * Follow **SemVer** for versioning.
-* Tag new releases with `git tag vX.Y.Z` and verify `vorbere run release` outputs.
-* Update CHANGELOG.md and reflect the changes in the release notes (include generators in the PR if they were used).
-
-### CHANGELOG.md Policy
-
-* **Sections**: Follow `[Keep a Changelog]` categories - `Added / Changed / Fixed / Deprecated / Removed / Security`.
-* **Language**: English.
-* **Writing Principles**:
-  * Describe "what changes for the user" in one sentence; include implementation details only when needed.
-  * Emphasize **breaking changes** in bold and provide migration steps.
-  * Include PR/Issue numbers when possible (e.g., `(#123)`).
-* **Workflow**:
-  1. Add entries to the `Unreleased` section in feature PRs.
-  2. Update the version number and date in release PRs.
-  3. After tagging, copy the relevant section into the release notes.
-* **Links (recommended)**:
-  * Add comparison links at the end of the file.
-* **Supporting Tools** (optional):
-  * Use tools like `git-cliff` or `conventional-changelog` to draft entries, then edit manually.
 
 ---
 

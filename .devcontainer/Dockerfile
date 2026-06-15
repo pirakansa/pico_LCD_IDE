@@ -8,7 +8,7 @@ ENV DEBIAN_FRONTEND=noninteractive \
 USER root
 
 RUN apt update -y && \
-    apt install -y curl git sudo zstd make cmake python3 \
+    apt install -y curl git sudo zstd ripgrep make cmake python3 \
         build-essential gcc-arm-none-eabi libnewlib-arm-none-eabi libstdc++-arm-none-eabi-newlib
 
 
